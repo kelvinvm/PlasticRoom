@@ -38,7 +38,7 @@ The design is high-fidelity and fully specified. See the design reference screen
 - Styling: IBM Plex Sans + IBM Plex Mono loaded from Google Fonts
 
 ### Backend
-- **ASP.NET Core 8 Web API** (C#)
+- **ASP.NET Core 10 Web API** (C#)
 - **DevExpress XPO** ORM with **SQLite** data provider
 - File parsing in C# (3MF = ZIP + XML; STL = binary header — no external library needed)
 - REST API; frontend communicates exclusively via fetch/axios

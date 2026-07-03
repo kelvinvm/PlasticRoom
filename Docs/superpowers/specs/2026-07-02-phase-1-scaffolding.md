@@ -13,7 +13,7 @@ A working, containerized skeleton — both services running in Docker, talking t
 ## Deliverables
 
 1. `frontend/` — Vite + React + TypeScript scaffold
-2. `backend/` — ASP.NET Core 8 Web API project (`PlasticRoom.Api`)
+2. `backend/` — ASP.NET Core 10 Web API project (`PlasticRoom.Api`)
 3. `docker-compose.yml` — wires both containers + `plasticroom-data` volume
 4. `frontend/Dockerfile` — Node build → Nginx alpine; proxies `/api/*` to backend
 5. `backend/Dockerfile` — ASP.NET runtime image; volume at `/data`
@@ -69,8 +69,8 @@ Stage 2 (serve): nginx:alpine — copy dist + nginx.conf
 
 ### `backend/Dockerfile`
 ```
-Stage 1 (build): mcr.microsoft.com/dotnet/sdk:8.0 — dotnet publish
-Stage 2 (runtime): mcr.microsoft.com/dotnet/aspnet:8.0
+Stage 1 (build): mcr.microsoft.com/dotnet/sdk:10.0 — dotnet publish
+Stage 2 (runtime): mcr.microsoft.com/dotnet/aspnet:10.0
 ```
 
 Environment variable `DATA_PATH` defaults to `/data`; used by XPO session factory for the SQLite path.
