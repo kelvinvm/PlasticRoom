@@ -1,53 +1,74 @@
-import { useEffect, useState } from 'react'
-
-type Status = 'loading' | 'connected' | 'error'
-
-const STATUS_CONFIG: Record<Status, { label: string; color: string }> = {
-  loading: { label: 'Connecting…', color: 'rgba(242,237,228,.35)' },
-  connected: { label: 'Connected', color: '#3ddc97' },
-  error: { label: 'Connection failed', color: '#e0654a' },
-}
+import { useState } from 'react'
+import { Sidebar } from './components/Sidebar'
+import { LibraryToolbar } from './components/LibraryToolbar'
+import { FileGrid } from './components/FileGrid'
+import { FileDetailPanel } from './components/FileDetailPanel'
+import { useFolders } from './hooks/useFolders'
+import { useTags } from './hooks/useTags'
+import { useFiles } from './hooks/useFiles'
+import { useDebouncedValue } from './hooks/useDebouncedValue'
+import styles from './App.module.css'
 
 export default function App() {
-  const [status, setStatus] = useState<Status>('loading')
+  const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null)
+  const [selectedFileId, setSelectedFileId] = useState<number | null>(null)
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search, 250)
 
-  useEffect(() => {
-    let cancelled = false
+  const { folders } = useFolders()
+  const { tags } = useTags()
+  const { files, loading, error } = useFiles(selectedFolderId, debouncedSearch)
 
-    fetch('/api/health')
-      .then((res) => {
-        if (cancelled) return
-        setStatus(res.ok ? 'connected' : 'error')
-      })
-      .catch(() => {
-        if (!cancelled) setStatus('error')
-      })
+  const title =
+    selectedFolderId === null
+      ? 'All Files'
+      : (folders.find((f) => f.id === selectedFolderId)?.name ?? 'Folder')
 
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  const selectedFile = files.find((f) => f.id === selectedFileId) ?? null
 
-  const { label, color } = STATUS_CONFIG[status]
+  const handleSelectFolder = (id: number | null) => {
+    setSelectedFolderId(id)
+  }
+
+  let center
+  if (loading) {
+    center = <div className={styles.status}>Loading…</div>
+  } else if (error) {
+    center = <div className={styles.status}>Could not load files. Is the backend running?</div>
+  } else if (files.length === 0) {
+    center = (
+      <div className={styles.status}>
+        {debouncedSearch.trim() ? 'No files match your search' : 'No files in this view'}
+      </div>
+    )
+  } else {
+    center = (
+      <FileGrid
+        files={files}
+        tags={tags}
+        selectedFileId={selectedFileId}
+        onSelectFile={setSelectedFileId}
+      />
+    )
+  }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '100vw',
-        height: '100vh',
-        background: '#0f0e0c',
-        fontFamily: "'IBM Plex Sans', sans-serif",
-        color: '#f2ede4',
-      }}
-    >
-      <h1 style={{ fontSize: 26, fontWeight: 600, marginBottom: 16 }}>
-        PlasticRoom
-      </h1>
-      <span style={{ fontSize: 13, color }}>{label}</span>
+    <div className={styles.app}>
+      <Sidebar
+        folders={folders}
+        selectedFolderId={selectedFolderId}
+        onSelectFolder={handleSelectFolder}
+      />
+      <main className={styles.center}>
+        <LibraryToolbar
+          title={title}
+          fileCount={files.length}
+          search={search}
+          onSearchChange={setSearch}
+        />
+        <div className={styles.centerBody}>{center}</div>
+      </main>
+      <FileDetailPanel file={selectedFile} folders={folders} tags={tags} />
     </div>
   )
 }
