@@ -278,6 +278,76 @@ public class FilesController : ControllerBase
         return Ok(ToDto(modelFile));
     }
 
+    [HttpPut("{id}/folders")]
+    public IActionResult SetFolders(int id, [FromBody] IdListRequest request)
+    {
+        using var session = _sessionFactory.CreateSession();
+        var file = session.GetObjectByKey<ModelFile>(id);
+        if (file is null)
+        {
+            return NotFound(new { error = $"File {id} not found" });
+        }
+
+        var desiredIds = request.Ids.ToHashSet();
+        var current = file.FileFolders.ToList();
+        var currentIds = current.Select(ff => ff.Folder.Oid).ToHashSet();
+
+        foreach (var fileFolder in current.Where(ff => !desiredIds.Contains(ff.Folder.Oid)))
+        {
+            fileFolder.Delete();
+        }
+
+        session.PurgeDeletedObjects();
+
+        foreach (var folderId in desiredIds.Where(fid => !currentIds.Contains(fid)))
+        {
+            var folder = session.GetObjectByKey<Folder>(folderId);
+            if (folder is null)
+            {
+                return NotFound(new { error = $"Folder {folderId} not found" });
+            }
+
+            new FileFolder(session) { File = file, Folder = folder }.Save();
+        }
+
+        return Ok(ToDto(file));
+    }
+
+    [HttpPut("{id}/tags")]
+    public IActionResult SetTags(int id, [FromBody] IdListRequest request)
+    {
+        using var session = _sessionFactory.CreateSession();
+        var file = session.GetObjectByKey<ModelFile>(id);
+        if (file is null)
+        {
+            return NotFound(new { error = $"File {id} not found" });
+        }
+
+        var desiredIds = request.Ids.ToHashSet();
+        var current = file.FileTags.ToList();
+        var currentIds = current.Select(ft => ft.Tag.Oid).ToHashSet();
+
+        foreach (var fileTag in current.Where(ft => !desiredIds.Contains(ft.Tag.Oid)))
+        {
+            fileTag.Delete();
+        }
+
+        session.PurgeDeletedObjects();
+
+        foreach (var tagId in desiredIds.Where(tid => !currentIds.Contains(tid)))
+        {
+            var tag = session.GetObjectByKey<Tag>(tagId);
+            if (tag is null)
+            {
+                return NotFound(new { error = $"Tag {tagId} not found" });
+            }
+
+            new FileTag(session) { File = file, Tag = tag }.Save();
+        }
+
+        return Ok(ToDto(file));
+    }
+
     private static bool TryValidateSourceUrl(string? sourceUrl, out string? error)
     {
         error = null;

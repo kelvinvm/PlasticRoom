@@ -166,6 +166,58 @@ public class FilesControllerTests : IDisposable
         Assert.True(System.IO.File.Exists(dto.ThumbnailPath));
     }
 
+    [Fact]
+    public async System.Threading.Tasks.Task SetFolders_DiffsAddedAndRemovedAssignments()
+    {
+        var uploaded = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            (await _controller.Upload(new UploadFileRequest { File = BuildStlFormFile("a.stl") }))).Value!;
+
+        int folderAId;
+        int folderBId;
+        using (var session = _sessionFactory.CreateSession())
+        {
+            var folderA = new PlasticRoom.Api.Entities.Folder(session) { Name = "A" };
+            var folderB = new PlasticRoom.Api.Entities.Folder(session) { Name = "B" };
+            folderA.Save();
+            folderB.Save();
+            folderAId = folderA.Oid;
+            folderBId = folderB.Oid;
+        }
+
+        var firstResult = _controller.SetFolders(uploaded.Id, new IdListRequest(new List<int> { folderAId }));
+        var firstDto = Assert.IsType<ModelFileDto>(Assert.IsType<OkObjectResult>(firstResult).Value);
+        Assert.Equal(new[] { folderAId }, firstDto.FolderIds);
+
+        var secondResult = _controller.SetFolders(uploaded.Id, new IdListRequest(new List<int> { folderBId }));
+        var secondDto = Assert.IsType<ModelFileDto>(Assert.IsType<OkObjectResult>(secondResult).Value);
+        Assert.Equal(new[] { folderBId }, secondDto.FolderIds);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task SetTags_DiffsAddedAndRemovedAssignments()
+    {
+        var uploaded = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            (await _controller.Upload(new UploadFileRequest { File = BuildStlFormFile("a.stl") }))).Value!;
+
+        int tagAId;
+        int tagBId;
+        using (var session = _sessionFactory.CreateSession())
+        {
+            var tagA = new PlasticRoom.Api.Entities.Tag(session) { Name = "PLA" };
+            var tagB = new PlasticRoom.Api.Entities.Tag(session) { Name = "PETG" };
+            tagA.Save();
+            tagB.Save();
+            tagAId = tagA.Oid;
+            tagBId = tagB.Oid;
+        }
+
+        _controller.SetTags(uploaded.Id, new IdListRequest(new List<int> { tagAId, tagBId }));
+        var result = _controller.SetTags(uploaded.Id, new IdListRequest(new List<int> { tagBId }));
+
+        var dto = Assert.IsType<ModelFileDto>(Assert.IsType<OkObjectResult>(result).Value);
+        Assert.Equal(new[] { tagBId }, dto.TagIds);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_tempDataDir))
