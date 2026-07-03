@@ -3,7 +3,7 @@ using PlasticRoom.Api.Data;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton<XpoSessionFactory>();
-// builder.Services.AddSingleton<FileStorage>(); // uncommented in Task 7
+builder.Services.AddSingleton<FileStorage>();
 builder.Services.AddControllers();
 builder.Services.AddCors(options =>
 {
