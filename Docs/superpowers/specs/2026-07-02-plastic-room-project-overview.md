@@ -122,8 +122,8 @@ Deliverables:
 - Navigation: click folder → filter grid; click file card → update right panel
 - Search: filters visible cards client-side (or via API query param)
 
-**Status:** Not started  
-**Spec:** *(to be written when Phase 3 begins)*
+**Status:** Spec written; implementation not started  
+**Spec:** [Phase 3 — Main Library UI](2026-07-03-phase-3-main-library-ui.md)
 
 ---
 
@@ -263,7 +263,7 @@ background: repeating-linear-gradient(
 ## Open Questions (to resolve per phase)
 
 - ~~**Collections type:** Should Favorites / Printed / To Print / Failed Prints be special-cased Folder rows (with a `type` discriminator) or a separate `Collection` entity?~~ **Resolved in Phase 2 spec:** no discriminator needed — a single `Folder` entity with an `IsSystem` boolean; collections nest and behave identically to any other folder except the API blocks rename/reparent/delete on them.
-- **Folder filtering:** When a folder is selected, does the grid show files assigned directly to it, or also files in any descendant folder? ("TBD — confirm with product" per spec.) Decide in Phase 3.
+- ~~**Folder filtering:** When a folder is selected, does the grid show files assigned directly to it, or also files in any descendant folder? ("TBD — confirm with product" per spec.) Decide in Phase 3.~~ **Resolved in Phase 3 spec:** descendant-inclusive — a selected folder shows its files plus all files in nested subfolders (distinct union), implemented server-side on `GET /api/files?folderId=`.
 - **Empty/loading states:** Not designed. Follow existing visual language (dark surfaces, orange accent, IBM Plex Mono for status text) when encountered during implementation.
 - **Authentication:** Not specified. Single-user/local-only assumed; no auth in scope.
 
