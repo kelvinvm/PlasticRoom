@@ -20,7 +20,7 @@ export function formatDimensions(
   if (x === null || y === null || z === null) {
     return null
   }
-  const trim = (n: number) => n.toString()
+  const trim = (n: number) => Number(n.toFixed(2)).toString()
   return `${trim(x)} × ${trim(y)} × ${trim(z)} mm`
 }
 

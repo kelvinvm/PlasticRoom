@@ -33,4 +33,19 @@ describe('buildFolderTree', () => {
     ])
     expect(tree.map((n) => n.name)).toEqual(['First', 'Alpha', 'Bravo'])
   })
+
+  it('treats a folder whose parent is absent from the set as a root', () => {
+    const tree = buildFolderTree([folder(2, 'Orphan', 99)])
+    expect(tree).toHaveLength(1)
+    expect(tree[0].name).toBe('Orphan')
+  })
+
+  it('sorts nested children, not just roots', () => {
+    const tree = buildFolderTree([
+      folder(1, 'Root', null),
+      folder(2, 'Zeta', 1, 1),
+      folder(3, 'Alpha', 1, 0),
+    ])
+    expect(tree[0].children.map((c) => c.name)).toEqual(['Alpha', 'Zeta'])
+  })
 })
