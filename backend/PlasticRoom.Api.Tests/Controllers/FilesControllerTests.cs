@@ -315,6 +315,36 @@ public class FilesControllerTests : IDisposable
         Assert.Equal(new[] { tagBId }, dto.TagIds);
     }
 
+    [Fact(Timeout = 10000)]
+    public async System.Threading.Tasks.Task GetAll_WithFolderCycle_TerminatesAndReturnsFiles()
+    {
+        var file = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            (await _controller.Upload(new UploadFileRequest { File = BuildStlFormFile("cyclic.stl") }))).Value!;
+
+        int folderAId;
+        using (var session = _sessionFactory.CreateSession())
+        {
+            var a = new PlasticRoom.Api.Entities.Folder(session) { Name = "A" };
+            var b = new PlasticRoom.Api.Entities.Folder(session) { Name = "B" };
+            a.Save();
+            b.Save();
+            // Create a cycle: A -> B -> A
+            a.ParentFolder = b;
+            b.ParentFolder = a;
+            a.Save();
+            b.Save();
+            var f = session.GetObjectByKey<PlasticRoom.Api.Entities.ModelFile>(file.Id);
+            new PlasticRoom.Api.Entities.FileFolder(session) { File = f!, Folder = a }.Save();
+            folderAId = a.Oid;
+        }
+
+        var result = Assert.IsType<OkObjectResult>(_controller.GetAll(folderAId, null));
+        var files = Assert.IsAssignableFrom<List<ModelFileDto>>(result.Value);
+
+        Assert.Single(files);
+        Assert.Equal(file.Id, files[0].Id);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_tempDataDir))

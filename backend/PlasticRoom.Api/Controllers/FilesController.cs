@@ -66,11 +66,16 @@ public class FilesController : ControllerBase
     private static List<Folder> CollectSelfAndDescendants(Folder root)
     {
         var result = new List<Folder>();
+        var seen = new HashSet<int>();
         var stack = new Stack<Folder>();
         stack.Push(root);
         while (stack.Count > 0)
         {
             var current = stack.Pop();
+            if (!seen.Add(current.Oid))
+            {
+                continue;
+            }
             result.Add(current);
             foreach (var child in current.Children)
             {
