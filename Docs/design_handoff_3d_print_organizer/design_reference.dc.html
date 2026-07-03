@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#0f0e0c;font-family:'IBM Plex Sans',sans-serif;color:#f2ede4}
+  .dv-turn{padding:48px 48px 40px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .dv-thd{display:flex;align-items:baseline;gap:12px;margin:0 0 22px}
+  .dv-tid{font:700 11px/1 'IBM Plex Mono',monospace;padding:4px 8px;background:#ff8a3d;color:#1a1512;border-radius:5px;text-decoration:none}
+  .dv-tname{font:600 15px/1.2 'IBM Plex Sans',sans-serif;color:#f2ede4}
+  .dv-tsub{font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.5);margin:4px 0 0}
+  .dv-opts{display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start}
+  .dv-opt{flex:none;display:flex;flex-direction:column;gap:10px}
+  .dv-oid{font:600 11px/1 'IBM Plex Mono',monospace;padding:4px 8px;background:rgba(255,255,255,.08);color:#f2ede4;border-radius:5px;text-decoration:none}
+  .dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 12px/1.3 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.55)}
+  .dv-card{background:#17140f;border:1px solid rgba(255,255,255,.1);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.4);overflow:hidden}
+  .dv-opt:target .dv-oid{background:#ff8a3d;color:#1a1512}
+  .dv-next{margin:24px 0 0;font:12px/1.6 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.45)}
+  .dv-next a{color:#ff8a3d}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:5px}
+</style>
+</helmet>
+
+<div style="padding:40px 48px 32px;max-width:900px;">
+  <div style="font:600 11px/1 'IBM Plex Mono',monospace;color:#ff8a3d;letter-spacing:.08em;margin-bottom:10px;">DESIGN NOTES — FROM YOUR DESIGNER</div>
+  <h1 style="font:700 26px/1.3 'IBM Plex Sans',sans-serif;margin:0 0 14px;color:#f2ede4;">3D Print File Organizer — Concept Directions</h1>
+  <p style="font:14px/1.7 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.65);margin:0 0 10px;">
+    Palette: warm near-black workshop tones with a single hot-orange accent (matches your "warm maker" pick, dark/dense pro-tool direction). Type is IBM Plex Sans for UI, IBM Plex Mono for technical readouts (dimensions, print time, layer height) — leaning into the precision-tool feel without going full CAD-blueprint.
+  </p>
+  <p style="font:14px/1.7 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.65);margin:0 0 10px;">
+    Since a file can live in many nested folders at once, I've treated "folders" and "collections" as the same underlying tree (like Lightroom's Collections, but hierarchical) rather than two separate systems — a file just gets checked into however many tree nodes apply. <a href="#t3" style="color:#ff8a3d;">See 3a</a> for how multi-assign works.
+  </p>
+  <p style="font:14px/1.7 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.65);margin:0;">
+    3D thumbnails/renders below are placeholders (striped blocks) — real renders would come from actual 3MF/STL parsing. <a href="#t1" style="color:#ff8a3d;">t1</a> below explores three library layouts; <a href="#t2" style="color:#ff8a3d;">t2</a>–<a href="#t4" style="color:#ff8a3d;">t4</a> flesh out detail view, folder org, and batch tagging using 1a as the base.
+  </p>
+</div>
+
+<section class="dv-turn" id="t6">
+  <div class="dv-thd"><a class="dv-tid" href="#t6">6</a><span class="dv-tname">Folder management screen</span></div>
+  <p class="dv-tsub">Full tree editor — create, rename, nest, reorder, and add cover/description metadata to any folder.</p>
+  <div class="dv-opts">
+    <div class="dv-opt" id="6a">
+      <div class="dv-olabel"><a class="dv-oid" href="#6a">6a</a>Tree editor + folder metadata panel</div>
+      <div class="dv-card" style="width:1280px;height:800px;display:flex;">
+        <div style="width:340px;flex:none;background:#151210;border-right:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;">
+          <div style="padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between;">
+            <span style="font:600 13px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Manage folders</span>
+            <span style="font:600 11.5px 'IBM Plex Sans',sans-serif;padding:6px 12px;border-radius:7px;background:#ff8a3d;color:#1a1512;">+ New folder</span>
+          </div>
+          <div style="flex:1;overflow:auto;padding:12px 10px;">
+            <div style="display:flex;flex-direction:column;gap:1px;font:13px 'IBM Plex Sans',sans-serif;">
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;background:rgba(255,138,61,.14);">
+                <span style="cursor:grab;color:rgba(242,237,228,.3);">⠿</span><span style="color:rgba(242,237,228,.4);">▾</span><span style="color:#f2ede4;font-weight:600;">📁 Miniatures</span>
+                <span style="margin-left:auto;font:10.5px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.35);">18</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px 8px 28px;border-radius:7px;">
+                <span style="cursor:grab;color:rgba(242,237,228,.3);">⠿</span><span style="color:rgba(242,237,228,.4);">▾</span><span style="color:#f2ede4;">📁 DnD Campaign</span>
+                <span style="margin-left:auto;font:10.5px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.35);">9</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px 8px 48px;border-radius:7px;">
+                <span style="cursor:grab;color:rgba(242,237,228,.3);">⠿</span><span style="color:rgba(242,237,228,.75);">📁 Session 1 NPCs</span>
+                <span style="margin-left:auto;font:10.5px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.35);">4</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px 8px 48px;border-radius:7px;">
+                <span style="cursor:grab;color:rgba(242,237,228,.3);">⠿</span><span style="color:rgba(242,237,228,.75);">📁 Boss Fights</span>
+                <span style="margin-left:auto;font:10.5px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.35);">2</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px 8px 28px;border-radius:7px;">
+                <span style="cursor:grab;color:rgba(242,237,228,.3);">⠿</span><span style="color:rgba(242,237,228,.4);">▾</span><span style="color:#f2ede4;">📁 Warhammer</span>
+                <span style="margin-left:auto;font:10.5px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.35);">9</span>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;margin-top:10px;">
+                <span style="cursor:grab;color:rgba(242,237,228,.3);">⠿</span><span style="color:rgba(242,237,228,.4);">▾</span><span style="color:#f2ede4;">📁 Household</span>
+                <span style="margin-left:auto;font:10.5px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.35);">11</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px 8px 28px;border-radius:7px;">
+                <span style="cursor:grab;color:rgba(242,237,228,.3);">⠿</span><span style="color:rgba(242,237,228,.75);">📁 Kitchen</span>
+                <span style="margin-left:auto;font:10.5px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.35);">5</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px 8px 28px;border-radius:7px;">
+                <span style="cursor:grab;color:rgba(242,237,228,.3);">⠿</span><span style="color:rgba(242,237,228,.75);">📁 Organization</span>
+                <span style="margin-left:auto;font:10.5px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.35);">6</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;">
+                <span style="cursor:grab;color:rgba(242,237,228,.3);">⠿</span><span style="color:rgba(242,237,228,.4);">▾</span><span style="color:#f2ede4;">📁 Client Work</span>
+                <span style="margin-left:auto;font:10.5px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.35);">4</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;">
+                <span style="cursor:grab;color:rgba(242,237,228,.3);">⠿</span><span style="color:rgba(242,237,228,.4);">▾</span><span style="color:#f2ede4;">📁 Terrain</span>
+                <span style="margin-left:auto;font:10.5px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.35);">7</span>
+              </div>
+            </div>
+          </div>
+          <div style="padding:12px 18px;border-top:1px solid rgba(255,255,255,.08);font:11.5px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.35);">Drag ⠿ to reorder or re-nest. Right-click for more options.</div>
+        </div>
+
+        <div style="flex:1;padding:24px 28px;overflow:auto;">
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:22px;">
+            <div style="width:64px;height:64px;border-radius:10px;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 8px,#2b241e 8px,#2b241e 16px);display:flex;align-items:center;justify-content:center;flex:none;"><span style="font:9px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.3);">COVER</span></div>
+            <div>
+              <div style="font:700 18px 'IBM Plex Sans',sans-serif;color:#f2ede4;">DnD Campaign</div>
+              <div style="font:11.5px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.4);">Inside Miniatures · 9 files · 2 subfolders</div>
+            </div>
+          </div>
+
+          <div style="font:600 11px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.5);margin-bottom:8px;letter-spacing:.04em;">FOLDER NAME</div>
+          <div style="background:#1f1b17;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 14px;font:13px 'IBM Plex Sans',sans-serif;color:#f2ede4;margin-bottom:20px;max-width:420px;">DnD Campaign</div>
+
+          <div style="font:600 11px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.5);margin-bottom:8px;letter-spacing:.04em;">DESCRIPTION</div>
+          <div style="background:#1f1b17;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 14px;font:12.5px/1.6 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.65);margin-bottom:20px;max-width:420px;min-height:56px;">Minis for the Friday night homebrew campaign. Print queue for the next 3 sessions.</div>
+
+          <div style="font:600 11px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.5);margin-bottom:8px;letter-spacing:.04em;">COVER IMAGE</div>
+          <div style="display:flex;gap:10px;margin-bottom:24px;">
+            <div style="width:90px;height:68px;border-radius:7px;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 8px,#2b241e 8px,#2b241e 16px);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px #ff8a3d;"><span style="font:8.5px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.3);">AUTO</span></div>
+            <div style="width:90px;height:68px;border-radius:7px;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 8px,#2b241e 8px,#2b241e 16px);"></div>
+            <div style="width:90px;height:68px;border-radius:7px;border:1px dashed rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font:11px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.35);">+ Upload</div>
+          </div>
+
+          <div style="height:1px;background:rgba(255,255,255,.08);margin-bottom:20px;"></div>
+
+          <div style="display:flex;gap:10px;">
+            <span style="font:600 12.5px 'IBM Plex Sans',sans-serif;padding:9px 16px;border-radius:7px;background:#ff8a3d;color:#1a1512;">Save changes</span>
+            <span style="font:600 12.5px 'IBM Plex Sans',sans-serif;padding:9px 16px;border-radius:7px;color:rgba(242,237,228,.6);border:1px solid rgba(255,255,255,.1);">Move to…</span>
+            <span style="font:600 12.5px 'IBM Plex Sans',sans-serif;padding:9px 16px;border-radius:7px;color:#e0654a;border:1px solid rgba(224,101,74,.35);margin-left:auto;">Delete folder</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="dv-next">Try next: "add a merge-folders action to <a class="dv-oid" href="#6a">6a</a>" · "show what deleting a non-empty folder confirms"</p>
+</section>
+
+<section class="dv-turn" id="t5">
+  <div class="dv-thd"><a class="dv-tid" href="#t5">5</a><span class="dv-tname">Import flow</span></div>
+  <p class="dv-tsub">Drag in 3MF/STL files, auto-detect metadata, choose destination folders before committing.</p>
+  <div class="dv-opts">
+    <div class="dv-opt" id="5a">
+      <div class="dv-olabel"><a class="dv-oid" href="#5a">5a</a>Drop zone → review → assign</div>
+      <div class="dv-card" style="width:1120px;height:760px;display:flex;flex-direction:column;">
+        <div style="padding:16px 24px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:12px;">
+          <span style="font:600 14px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Import files</span>
+          <span style="font:11.5px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.4);">6 detected · 6 ready</span>
+        </div>
+        <div style="flex:1;display:flex;min-height:0;">
+          <div style="flex:1;overflow:auto;padding:20px 24px;">
+            <div style="border:2px dashed rgba(255,138,61,.35);border-radius:12px;padding:22px;display:flex;align-items:center;gap:16px;margin-bottom:20px;background:rgba(255,138,61,.05);">
+              <div style="width:44px;height:44px;border-radius:10px;background:#ff8a3d;display:flex;align-items:center;justify-content:center;font-size:20px;color:#1a1512;flex:none;">⇩</div>
+              <div>
+                <div style="font:600 13px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Drop 3MF / STL files here, or click to browse</div>
+                <div style="font:12px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.45);margin-top:2px;">Metadata (dimensions, print time, plates) is parsed automatically</div>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:#1c1815;border:1px solid rgba(255,255,255,.08);border-radius:9px;">
+                <div style="width:44px;height:44px;flex:none;border-radius:6px;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 6px,#2b241e 6px,#2b241e 12px);"></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font:600 12.5px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Cable_Clip_Mount.stl</div>
+                  <div style="font:10.5px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.4);">42 × 18 × 12mm · 18m print · 0.8 MB</div>
+                </div>
+                <span style="font:10.5px 'IBM Plex Mono',monospace;color:#3ddc97;">✓ parsed</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:#1c1815;border:1px solid rgba(255,255,255,.08);border-radius:9px;">
+                <div style="width:44px;height:44px;flex:none;border-radius:6px;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 6px,#2b241e 6px,#2b241e 12px);"></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font:600 12.5px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Plant_Pot_Hex.3mf</div>
+                  <div style="font:10.5px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.4);">110 × 110 × 95mm · 3h 20m print · 22.1 MB</div>
+                </div>
+                <span style="font:10.5px 'IBM Plex Mono',monospace;color:#3ddc97;">✓ parsed</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:#1c1815;border:1px solid rgba(255,255,255,.08);border-radius:9px;">
+                <div style="width:44px;height:44px;flex:none;border-radius:6px;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 6px,#2b241e 6px,#2b241e 12px);"></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font:600 12.5px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Chess_Set_Knight.stl</div>
+                  <div style="font:10.5px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.4);">30 × 30 × 58mm · 48m print · 2.4 MB</div>
+                </div>
+                <span style="font:10.5px 'IBM Plex Mono',monospace;color:#3ddc97;">✓ parsed</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:#1c1815;border:1px solid rgba(224,101,74,.3);border-radius:9px;">
+                <div style="width:44px;height:44px;flex:none;border-radius:6px;background:repeating-linear-gradient(135deg,#2b1e1a,#2b1e1a 6px,#331f1e 6px,#331f1e 12px);"></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font:600 12.5px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Corrupt_Model.stl</div>
+                  <div style="font:10.5px 'IBM Plex Mono',monospace;color:#e0654a;">Couldn't parse geometry — file may be corrupt</div>
+                </div>
+                <span style="font:10.5px 'IBM Plex Mono',monospace;color:#e0654a;">✕ error</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="width:300px;flex:none;background:#151210;border-left:1px solid rgba(255,255,255,.08);padding:20px;display:flex;flex-direction:column;">
+            <div style="font:600 11px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.5);margin-bottom:8px;letter-spacing:.04em;">ADD ALL TO FOLDER(S)</div>
+            <div style="background:#1f1b17;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:9px 12px;font:12px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.35);margin-bottom:12px;">Search or pick a folder…</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px;">
+              <span style="font:500 10.5px 'IBM Plex Mono',monospace;padding:4px 9px;border-radius:99px;background:rgba(219,181,90,.15);color:#dbb55a;">To Print ✕</span>
+            </div>
+
+            <div style="font:600 11px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.5);margin-bottom:8px;letter-spacing:.04em;">TAGS FOR ALL</div>
+            <div style="background:#1f1b17;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:9px 12px;font:12px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.35);margin-bottom:20px;">Add a tag…</div>
+
+            <div style="font:11.5px/1.5 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.4);margin-bottom:16px;">1 file couldn't be parsed and will be skipped. You can still import the other 5.</div>
+
+            <div style="flex:1;"></div>
+            <div style="display:flex;gap:8px;">
+              <span style="flex:1;text-align:center;font:600 12.5px 'IBM Plex Sans',sans-serif;padding:10px;border-radius:7px;color:rgba(242,237,228,.6);border:1px solid rgba(255,255,255,.1);">Cancel</span>
+              <span style="flex:1;text-align:center;font:600 12.5px 'IBM Plex Sans',sans-serif;padding:10px;border-radius:7px;background:#ff8a3d;color:#1a1512;">Import 5 files</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="dv-next">Try next: "show progress state while parsing large files" · "add duplicate-detection to <a class="dv-oid" href="#5a">5a</a>"</p>
+</section>
+
+<section class="dv-turn" id="t1">
+  <div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Main library screen — layout directions</span></div>
+  <p class="dv-tsub">Three takes on the primary browsing screen.</p>
+  <div class="dv-opts">
+
+    <div class="dv-opt" id="1a">
+      <div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Classic three-pane (Lightroom-style)</div>
+      <div class="dv-card" style="width:1280px;height:800px;display:flex;">
+        <div style="width:220px;flex:none;background:#151210;border-right:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;">
+          <div style="padding:16px 16px 12px;font:600 13px 'IBM Plex Sans',sans-serif;color:#f2ede4;display:flex;align-items:center;gap:8px;">
+            <div style="width:20px;height:20px;border-radius:5px;background:#ff8a3d;"></div>Filament Vault
+          </div>
+          <div style="padding:0 16px;overflow:auto;flex:1;">
+            <div style="font:600 10px/1 'IBM Plex Mono',monospace;color:rgba(242,237,228,.4);letter-spacing:.08em;margin:14px 0 8px;">LIBRARY</div>
+            <div style="display:flex;flex-direction:column;gap:2px;font:13px 'IBM Plex Sans',sans-serif;">
+              <div style="padding:6px 8px;border-radius:6px;background:rgba(255,138,61,.15);color:#ff8a3d;font-weight:600;">📁 All Files</div>
+              <div style="padding:6px 8px 6px 22px;color:rgba(242,237,228,.75);">📁 Miniatures</div>
+              <div style="padding:6px 8px 6px 36px;color:rgba(242,237,228,.55);">📁 DnD Campaign</div>
+              <div style="padding:6px 8px 6px 36px;color:rgba(242,237,228,.55);">📁 Warhammer</div>
+              <div style="padding:6px 8px 6px 22px;color:rgba(242,237,228,.75);">📁 Household</div>
+              <div style="padding:6px 8px 6px 36px;color:rgba(242,237,228,.55);">📁 Kitchen</div>
+              <div style="padding:6px 8px 6px 36px;color:rgba(242,237,228,.55);">📁 Organization</div>
+              <div style="padding:6px 8px 6px 22px;color:rgba(242,237,228,.75);">📁 Client Work</div>
+              <div style="padding:6px 8px 6px 22px;color:rgba(242,237,228,.75);">📁 Terrain</div>
+            </div>
+            <div style="font:600 10px/1 'IBM Plex Mono',monospace;color:rgba(242,237,228,.4);letter-spacing:.08em;margin:18px 0 8px;">COLLECTIONS</div>
+            <div style="display:flex;flex-direction:column;gap:2px;font:13px 'IBM Plex Sans',sans-serif;">
+              <div style="padding:6px 8px;color:rgba(242,237,228,.75);">★ Favorites</div>
+              <div style="padding:6px 8px;color:rgba(242,237,228,.75);">✓ Printed</div>
+              <div style="padding:6px 8px;color:rgba(242,237,228,.75);">◷ To Print</div>
+              <div style="padding:6px 8px;color:rgba(242,237,228,.75);">✕ Failed Prints</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+          <div style="padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:14px;">
+            <div style="font:600 13px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Miniatures</div>
+            <div style="font:12px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.4);">42 files</div>
+            <div style="flex:1;"></div>
+            <div style="width:200px;height:30px;background:#1f1b17;border:1px solid rgba(255,255,255,.08);border-radius:6px;display:flex;align-items:center;padding:0 10px;font:12px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.35);">Search files…</div>
+          </div>
+          <div style="flex:1;overflow:auto;padding:18px 20px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px;align-content:start;">
+            <div style="background:#1c1815;border:1px solid rgba(255,255,255,.08);border-radius:9px;overflow:hidden;">
+              <div style="aspect-ratio:4/3;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 8px,#2b241e 8px,#2b241e 16px);display:flex;align-items:center;justify-content:center;"><span style="font:11px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.3);">3MF PREVIEW</span></div>
+              <div style="padding:10px 12px;">
+                <div style="font:600 12.5px 'IBM Plex Sans',sans-serif;color:#f2ede4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Articulated_Dragon_v3.3mf</div>
+                <div style="font:11px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.45);margin:4px 0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Print-in-place dragon, 8 segments</div>
+                <div style="display:flex;gap:5px;flex-wrap:wrap;"><span style="font:500 9.5px 'IBM Plex Mono',monospace;padding:2px 7px;border-radius:99px;background:rgba(255,138,61,.15);color:#ff8a3d;">Favorites</span></div>
+              </div>
+            </div>
+            <div style="background:#1c1815;border:1px solid rgba(255,255,255,.08);border-radius:9px;overflow:hidden;box-shadow:0 0 0 2px #ff8a3d;">
+              <div style="aspect-ratio:4/3;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 8px,#2b241e 8px,#2b241e 16px);display:flex;align-items:center;justify-content:center;"><span style="font:11px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.3);">STL PREVIEW</span></div>
+              <div style="padding:10px 12px;">
+                <div style="font:600 12.5px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Goblin_King_Mini.stl</div>
+                <div style="font:11px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.45);margin:4px 0 6px;">32mm scale, single piece</div>
+                <div style="display:flex;gap:5px;flex-wrap:wrap;"><span style="font:500 9.5px 'IBM Plex Mono',monospace;padding:2px 7px;border-radius:99px;background:rgba(219,181,90,.15);color:#dbb55a;">To Print</span></div>
+              </div>
+            </div>
+            <div style="background:#1c1815;border:1px solid rgba(255,255,255,.08);border-radius:9px;overflow:hidden;">
+              <div style="aspect-ratio:4/3;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 8px,#2b241e 8px,#2b241e 16px);display:flex;align-items:center;justify-content:center;"><span style="font:11px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.3);">3MF PREVIEW</span></div>
+              <div style="padding:10px 12px;">
+                <div style="font:600 12.5px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Chess_Knight_Set.3mf</div>
+                <div style="font:11px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.45);margin:4px 0 6px;">4 plates, resin optimized</div>
+                <div style="display:flex;gap:5px;flex-wrap:wrap;"><span style="font:500 9.5px 'IBM Plex Mono',monospace;padding:2px 7px;border-radius:99px;background:rgba(255,138,61,.15);color:#ff8a3d;">Printed</span></div>
+              </div>
+            </div>
+            <div style="background:#1c1815;border:1px solid rgba(255,255,255,.08);border-radius:9px;overflow:hidden;">
+              <div style="aspect-ratio:4/3;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 8px,#2b241e 8px,#2b241e 16px);display:flex;align-items:center;justify-content:center;"><span style="font:11px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.3);">STL PREVIEW</span></div>
+              <div style="padding:10px 12px;">
+                <div style="font:600 12.5px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Terrain_Ruins_Tile.stl</div>
+                <div style="font:11px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.45);margin:4px 0 6px;">Modular, 6x6in base</div>
+                <div style="display:flex;gap:5px;flex-wrap:wrap;"><span style="font:500 9.5px 'IBM Plex Mono',monospace;padding:2px 7px;border-radius:99px;background:rgba(219,181,90,.15);color:#dbb55a;">Terrain</span></div>
+              </div>
+            </div>
+            <div style="background:#1c1815;border:1px solid rgba(255,255,255,.08);border-radius:9px;overflow:hidden;">
+              <div style="aspect-ratio:4/3;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 8px,#2b241e 8px,#2b241e 16px);display:flex;align-items:center;justify-content:center;"><span style="font:11px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.3);">3MF PREVIEW</span></div>
+              <div style="padding:10px 12px;">
+                <div style="font:600 12.5px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Warband_Captain.3mf</div>
+                <div style="font:11px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.45);margin:4px 0 6px;">Warhammer proxy, 32mm</div>
+                <div style="display:flex;gap:5px;flex-wrap:wrap;"><span style="font:500 9.5px 'IBM Plex Mono',monospace;padding:2px 7px;border-radius:99px;background:rgba(219,181,90,.15);color:#dbb55a;">To Print</span></div>
+              </div>
+            </div>
+            <div style="background:#1c1815;border:1px solid rgba(255,255,255,.08);border-radius:9px;overflow:hidden;">
+              <div style="aspect-ratio:4/3;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 8px,#2b241e 8px,#2b241e 16px);display:flex;align-items:center;justify-content:center;"><span style="font:11px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.3);">STL PREVIEW</span></div>
+              <div style="padding:10px 12px;">
+                <div style="font:600 12.5px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Skeleton_Archer.stl</div>
+                <div style="font:11px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.45);margin:4px 0 6px;">Pre-supported, 28mm</div>
+                <div style="display:flex;gap:5px;flex-wrap:wrap;"><span style="font:500 9.5px 'IBM Plex Mono',monospace;padding:2px 7px;border-radius:99px;background:rgba(255,138,61,.15);color:#ff8a3d;">Favorites</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="width:280px;flex:none;background:#151210;border-left:1px solid rgba(255,255,255,.08);padding:18px;overflow:auto;">
+          <div style="aspect-ratio:4/3;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 8px,#2b241e 8px,#2b241e 16px);border-radius:8px;margin-bottom:14px;display:flex;align-items:center;justify-content:center;"><span style="font:11px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.3);">STL PREVIEW</span></div>
+          <div style="font:600 14px 'IBM Plex Sans',sans-serif;color:#f2ede4;margin-bottom:2px;">Goblin_King_Mini.stl</div>
+          <div style="font:11px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.4);margin-bottom:16px;">4.2 MB · Added Jun 12</div>
+          <div style="display:flex;flex-direction:column;gap:10px;font:12px 'IBM Plex Sans',sans-serif;">
+            <div style="display:flex;justify-content:space-between;color:rgba(242,237,228,.5);"><span>Dimensions</span><span style="font-family:'IBM Plex Mono',monospace;color:#f2ede4;">32 × 28 × 45mm</span></div>
+            <div style="display:flex;justify-content:space-between;color:rgba(242,237,228,.5);"><span>Est. print time</span><span style="font-family:'IBM Plex Mono',monospace;color:#f2ede4;">2h 14m</span></div>
+            <div style="display:flex;justify-content:space-between;color:rgba(242,237,228,.5);"><span>Material</span><span style="font-family:'IBM Plex Mono',monospace;color:#f2ede4;">Resin</span></div>
+          </div>
+          <div style="height:1px;background:rgba(255,255,255,.08);margin:16px 0;"></div>
+          <div style="font:600 11px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.5);margin-bottom:8px;">Description</div>
+          <div style="font:12px/1.6 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.6);margin-bottom:16px;">Single-piece goblin king miniature, no supports needed on the crown.</div>
+          <div style="font:600 11px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.5);margin-bottom:8px;">In folders / collections</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <span style="font:500 10.5px 'IBM Plex Mono',monospace;padding:3px 8px;border-radius:99px;background:rgba(255,138,61,.15);color:#ff8a3d;">Miniatures</span>
+            <span style="font:500 10.5px 'IBM Plex Mono',monospace;padding:3px 8px;border-radius:99px;background:rgba(255,138,61,.15);color:#ff8a3d;">DnD Campaign</span>
+            <span style="font:500 10.5px 'IBM Plex Mono',monospace;padding:3px 8px;border-radius:99px;background:rgba(219,181,90,.15);color:#dbb55a;">To Print</span>
+            <span style="font:12px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.35);padding:3px 8px;border:1px dashed rgba(255,255,255,.15);border-radius:99px;">+ add</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="1b">
+      <div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Grid-first, collections as filter pills</div>
+      <div class="dv-card" style="width:1120px;height:800px;display:flex;flex-direction:column;">
+        <div style="padding:18px 24px;border-bottom:1px solid rgba(255,255,255,.08);">
+          <div style="font:600 15px 'IBM Plex Sans',sans-serif;color:#f2ede4;margin-bottom:12px;">Filament Vault</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <span style="font:600 12px 'IBM Plex Sans',sans-serif;padding:7px 14px;border-radius:99px;background:#ff8a3d;color:#1a1512;">All Files</span>
+            <span style="font:12px 'IBM Plex Sans',sans-serif;padding:7px 14px;border-radius:99px;background:#1f1b17;color:rgba(242,237,228,.7);">Miniatures</span>
+            <span style="font:12px 'IBM Plex Sans',sans-serif;padding:7px 14px;border-radius:99px;background:#1f1b17;color:rgba(242,237,228,.7);">Household</span>
+            <span style="font:12px 'IBM Plex Sans',sans-serif;padding:7px 14px;border-radius:99px;background:#1f1b17;color:rgba(242,237,228,.7);">Client Work</span>
+            <span style="font:12px 'IBM Plex Sans',sans-serif;padding:7px 14px;border-radius:99px;background:#1f1b17;color:rgba(242,237,228,.7);">Terrain</span>
+            <span style="width:1px;background:rgba(255,255,255,.1);margin:0 4px;"></span>
+            <span style="font:12px 'IBM Plex Sans',sans-serif;padding:7px 14px;border-radius:99px;background:#1f1b17;color:#dbb55a;">★ Favorites</span>
+            <span style="font:12px 'IBM Plex Sans',sans-serif;padding:7px 14px;border-radius:99px;background:#1f1b17;color:rgba(242,237,228,.7);">To Print</span>
+          </div>
+        </div>
+        <div style="flex:1;overflow:auto;padding:22px 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-content:start;">
+          <div style="background:#17140f;border:1px solid rgba(255,255,255,.1);border-radius:12px;overflow:hidden;">
+            <div style="aspect-ratio:1/1;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 10px,#2b241e 10px,#2b241e 20px);display:flex;align-items:center;justify-content:center;"><span style="font:11px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.3);">3MF PREVIEW</span></div>
+            <div style="padding:14px 16px;">
+              <div style="font:600 14px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Voronoi_Vase_Tall.3mf</div>
+              <div style="font:12px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.45);margin:5px 0 8px;">Vase-mode, single wall</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;"><span style="font:500 10px 'IBM Plex Mono',monospace;padding:3px 8px;border-radius:99px;background:rgba(219,181,90,.15);color:#dbb55a;">Household</span></div>
+            </div>
+          </div>
+          <div style="background:#17140f;border:1px solid rgba(255,255,255,.1);border-radius:12px;overflow:hidden;box-shadow:0 0 0 2px #ff8a3d;">
+            <div style="aspect-ratio:1/1;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 10px,#2b241e 10px,#2b241e 20px);display:flex;align-items:center;justify-content:center;"><span style="font:11px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.3);">STL PREVIEW</span></div>
+            <div style="padding:14px 16px;">
+              <div style="font:600 14px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Camera_Mount_Arm.stl</div>
+              <div style="font:12px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.45);margin:5px 0 8px;">Adjustable, tripod thread</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;"><span style="font:500 10px 'IBM Plex Mono',monospace;padding:3px 8px;border-radius:99px;background:rgba(255,138,61,.15);color:#ff8a3d;">Favorites</span></div>
+            </div>
+          </div>
+          <div style="background:#17140f;border:1px solid rgba(255,255,255,.1);border-radius:12px;overflow:hidden;">
+            <div style="aspect-ratio:1/1;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 10px,#2b241e 10px,#2b241e 20px);display:flex;align-items:center;justify-content:center;"><span style="font:11px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.3);">3MF PREVIEW</span></div>
+            <div style="padding:14px 16px;">
+              <div style="font:600 14px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Desk_Organizer_Tray.3mf</div>
+              <div style="font:12px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.45);margin:5px 0 8px;">3 compartments</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;"><span style="font:500 10px 'IBM Plex Mono',monospace;padding:3px 8px;border-radius:99px;background:rgba(219,181,90,.15);color:#dbb55a;">Household</span></div>
+            </div>
+          </div>
+          <div style="background:#17140f;border:1px solid rgba(255,255,255,.1);border-radius:12px;overflow:hidden;">
+            <div style="aspect-ratio:1/1;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 10px,#2b241e 10px,#2b241e 20px);display:flex;align-items:center;justify-content:center;"><span style="font:11px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.3);">STL PREVIEW</span></div>
+            <div style="padding:14px 16px;">
+              <div style="font:600 14px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Wall_Bracket_v2.stl</div>
+              <div style="font:12px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.45);margin:5px 0 8px;">Load-rated, 2 mounting holes</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;"><span style="font:500 10px 'IBM Plex Mono',monospace;padding:3px 8px;border-radius:99px;background:rgba(219,181,90,.15);color:#dbb55a;">Client Work</span></div>
+            </div>
+          </div>
+          <div style="background:#17140f;border:1px solid rgba(255,255,255,.1);border-radius:12px;overflow:hidden;">
+            <div style="aspect-ratio:1/1;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 10px,#2b241e 10px,#2b241e 20px);display:flex;align-items:center;justify-content:center;"><span style="font:11px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.3);">3MF PREVIEW</span></div>
+            <div style="padding:14px 16px;">
+              <div style="font:600 14px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Headphone_Hook.3mf</div>
+              <div style="font:12px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.45);margin:5px 0 8px;">Under-desk mount</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;"><span style="font:500 10px 'IBM Plex Mono',monospace;padding:3px 8px;border-radius:99px;background:rgba(219,181,90,.15);color:#dbb55a;">Household</span></div>
+            </div>
+          </div>
+          <div style="background:#17140f;border:1px solid rgba(255,255,255,.1);border-radius:12px;overflow:hidden;">
+            <div style="aspect-ratio:1/1;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 10px,#2b241e 10px,#2b241e 20px);display:flex;align-items:center;justify-content:center;"><span style="font:11px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.3);">STL PREVIEW</span></div>
+            <div style="padding:14px 16px;">
+              <div style="font:600 14px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Phone_Stand_Adj.stl</div>
+              <div style="font:12px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.45);margin:5px 0 8px;">Folding hinge, angle adj.</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;"><span style="font:500 10px 'IBM Plex Mono',monospace;padding:3px 8px;border-radius:99px;background:rgba(255,138,61,.15);color:#ff8a3d;">Favorites</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="1c">
+      <div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Workbench split view (viewer-first)</div>
+      <div class="dv-card" style="width:1200px;height:800px;display:flex;">
+        <div style="width:56px;flex:none;background:#151210;border-right:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:18px;">
+          <div style="width:28px;height:28px;border-radius:7px;background:#ff8a3d;"></div>
+          <div style="width:28px;height:28px;border-radius:7px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;color:rgba(242,237,228,.5);font-size:14px;">📁</div>
+          <div style="width:28px;height:28px;border-radius:7px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;color:rgba(242,237,228,.5);font-size:14px;">★</div>
+          <div style="width:28px;height:28px;border-radius:7px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;color:rgba(242,237,228,.5);font-size:14px;">🏷</div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+          <div style="flex:1;background:radial-gradient(circle at 50% 40%,#241f1a,#131010);display:flex;align-items:center;justify-content:center;position:relative;">
+            <div style="width:280px;height:280px;border-radius:16px;background:repeating-linear-gradient(135deg,#2b241e,#2b241e 10px,#332b23 10px,#332b23 20px);display:flex;align-items:center;justify-content:center;"><span style="font:12px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.35);">3D VIEWER · ORBIT</span></div>
+            <div style="position:absolute;bottom:20px;right:20px;display:flex;gap:8px;">
+              <div style="width:32px;height:32px;border-radius:8px;background:#1f1b17;border:1px solid rgba(255,255,255,.1);"></div>
+              <div style="width:32px;height:32px;border-radius:8px;background:#1f1b17;border:1px solid rgba(255,255,255,.1);"></div>
+              <div style="width:32px;height:32px;border-radius:8px;background:#1f1b17;border:1px solid rgba(255,255,255,.1);"></div>
+            </div>
+            <div style="position:absolute;top:20px;left:20px;font:600 13px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Baby_Groot_Planter.stl</div>
+          </div>
+          <div style="height:120px;flex:none;border-top:1px solid rgba(255,255,255,.08);display:flex;gap:10px;padding:12px 16px;overflow:auto;">
+            <div style="width:110px;flex:none;border-radius:8px;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 8px,#2b241e 8px,#2b241e 16px);box-shadow:0 0 0 2px #ff8a3d;"></div>
+            <div style="width:110px;flex:none;border-radius:8px;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 8px,#2b241e 8px,#2b241e 16px);"></div>
+            <div style="width:110px;flex:none;border-radius:8px;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 8px,#2b241e 8px,#2b241e 16px);"></div>
+            <div style="width:110px;flex:none;border-radius:8px;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 8px,#2b241e 8px,#2b241e 16px);"></div>
+            <div style="width:110px;flex:none;border-radius:8px;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 8px,#2b241e 8px,#2b241e 16px);"></div>
+          </div>
+        </div>
+        <div style="width:280px;flex:none;background:#151210;border-left:1px solid rgba(255,255,255,.08);padding:18px;overflow:auto;">
+          <div style="font:600 11px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.5);margin-bottom:10px;">FILES IN THIS FOLDER (14)</div>
+          <div style="display:flex;flex-direction:column;gap:2px;">
+            <div style="display:flex;gap:10px;align-items:center;padding:8px;border-radius:7px;background:rgba(255,138,61,.12);">
+              <div style="width:34px;height:34px;flex:none;border-radius:5px;background:repeating-linear-gradient(135deg,#2b241e,#2b241e 6px,#332b23 6px,#332b23 12px);"></div>
+              <div style="min-width:0;"><div style="font:12.5px 'IBM Plex Sans',sans-serif;color:#f2ede4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Baby_Groot_Planter.stl</div><div style="font:10.5px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.4);">1h 40m print</div></div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;padding:8px;border-radius:7px;">
+              <div style="width:34px;height:34px;flex:none;border-radius:5px;background:repeating-linear-gradient(135deg,#2b241e,#2b241e 6px,#332b23 6px,#332b23 12px);"></div>
+              <div style="min-width:0;"><div style="font:12.5px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Succulent_Pot.3mf</div><div style="font:10.5px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.4);">55m print</div></div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;padding:8px;border-radius:7px;">
+              <div style="width:34px;height:34px;flex:none;border-radius:5px;background:repeating-linear-gradient(135deg,#2b241e,#2b241e 6px,#332b23 6px,#332b23 12px);"></div>
+              <div style="min-width:0;"><div style="font:12.5px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Herb_Garden_Set.stl</div><div style="font:10.5px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.4);">3h 05m print</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <p class="dv-next">Try next: "combine <a class="dv-oid" href="#1a">1a</a>'s tree with <a class="dv-oid" href="#1c">1c</a>'s viewer" · "make <a class="dv-oid" href="#1b">1b</a> the base" · "show me more layout ideas"</p>
+</section>
+
+<section class="dv-turn" id="t2">
+  <div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Single-file detail view</span></div>
+  <p class="dv-tsub">Full-screen detail with embedded viewer, built on 1a's visual language.</p>
+  <div class="dv-opts">
+    <div class="dv-opt" id="2a">
+      <div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>Detail view</div>
+      <div class="dv-card" style="width:1280px;height:800px;display:flex;">
+        <div style="flex:1;display:flex;flex-direction:column;min-width:0;border-right:1px solid rgba(255,255,255,.08);">
+          <div style="padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:12px;">
+            <span style="font:13px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.4);">Miniatures / DnD Campaign</span>
+            <span style="color:rgba(242,237,228,.3);">›</span>
+            <span style="font:600 13px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Articulated_Dragon_v3.3mf</span>
+          </div>
+          <div style="flex:1;background:radial-gradient(circle at 50% 40%,#241f1a,#131010);display:flex;align-items:center;justify-content:center;position:relative;">
+            <div style="width:340px;height:340px;border-radius:18px;background:repeating-linear-gradient(135deg,#2b241e,#2b241e 10px,#332b23 10px,#332b23 20px);display:flex;align-items:center;justify-content:center;"><span style="font:12px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.35);">3D VIEWER · DRAG TO ORBIT · SCROLL TO ZOOM</span></div>
+            <div style="position:absolute;top:20px;right:20px;display:flex;gap:8px;font:11px 'IBM Plex Mono',monospace;">
+              <span style="padding:6px 12px;border-radius:7px;background:#ff8a3d;color:#1a1512;font-weight:600;">Solid</span>
+              <span style="padding:6px 12px;border-radius:7px;background:#1f1b17;border:1px solid rgba(255,255,255,.1);color:rgba(242,237,228,.6);">Wireframe</span>
+              <span style="padding:6px 12px;border-radius:7px;background:#1f1b17;border:1px solid rgba(255,255,255,.1);color:rgba(242,237,228,.6);">Plates</span>
+            </div>
+          </div>
+          <div style="height:96px;flex:none;border-top:1px solid rgba(255,255,255,.08);display:flex;gap:10px;padding:12px 16px;align-items:center;">
+            <span style="font:11px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.4);">2 PLATES</span>
+            <div style="width:70px;height:70px;border-radius:7px;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 8px,#2b241e 8px,#2b241e 16px);box-shadow:0 0 0 2px #ff8a3d;"></div>
+            <div style="width:70px;height:70px;border-radius:7px;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 8px,#2b241e 8px,#2b241e 16px);"></div>
+          </div>
+        </div>
+        <div style="width:320px;flex:none;background:#151210;padding:20px;overflow:auto;">
+          <div style="font:700 15px 'IBM Plex Sans',sans-serif;color:#f2ede4;margin-bottom:2px;">Articulated_Dragon_v3.3mf</div>
+          <div style="font:11px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.4);margin-bottom:18px;">18.4 MB · Added Jun 8, 2026</div>
+
+          <div style="font:600 11px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.5);margin-bottom:10px;letter-spacing:.04em;">SPECS</div>
+          <div style="display:flex;flex-direction:column;gap:9px;font:12px 'IBM Plex Sans',sans-serif;margin-bottom:18px;">
+            <div style="display:flex;justify-content:space-between;color:rgba(242,237,228,.5);"><span>Dimensions</span><span style="font-family:'IBM Plex Mono',monospace;color:#f2ede4;">210 × 60 × 55mm</span></div>
+            <div style="display:flex;justify-content:space-between;color:rgba(242,237,228,.5);"><span>Est. print time</span><span style="font-family:'IBM Plex Mono',monospace;color:#f2ede4;">9h 40m</span></div>
+            <div style="display:flex;justify-content:space-between;color:rgba(242,237,228,.5);"><span>Material</span><span style="font-family:'IBM Plex Mono',monospace;color:#f2ede4;">PLA</span></div>
+            <div style="display:flex;justify-content:space-between;color:rgba(242,237,228,.5);"><span>Layer height</span><span style="font-family:'IBM Plex Mono',monospace;color:#f2ede4;">0.2mm</span></div>
+            <div style="display:flex;justify-content:space-between;color:rgba(242,237,228,.5);"><span>Plates</span><span style="font-family:'IBM Plex Mono',monospace;color:#f2ede4;">2</span></div>
+          </div>
+
+          <div style="font:600 11px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.5);margin-bottom:8px;letter-spacing:.04em;">DESCRIPTION</div>
+          <div style="font:12px/1.6 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.6);background:#1f1b17;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:10px 12px;margin-bottom:18px;">Fully articulated print-in-place dragon, 8 body segments. No glue needed, print flat on the bed.</div>
+
+          <div style="font:600 11px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.5);margin-bottom:8px;letter-spacing:.04em;">IN FOLDERS / COLLECTIONS</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <span style="font:500 10.5px 'IBM Plex Mono',monospace;padding:4px 9px;border-radius:99px;background:rgba(255,138,61,.15);color:#ff8a3d;">Miniatures</span>
+            <span style="font:500 10.5px 'IBM Plex Mono',monospace;padding:4px 9px;border-radius:99px;background:rgba(255,138,61,.15);color:#ff8a3d;">DnD Campaign</span>
+            <span style="font:500 10.5px 'IBM Plex Mono',monospace;padding:4px 9px;border-radius:99px;background:rgba(255,138,61,.15);color:#ff8a3d;">★ Favorites</span>
+            <span style="font:12px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.35);padding:4px 9px;border:1px dashed rgba(255,255,255,.15);border-radius:99px;">+ add</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="dv-next">Try next: "add a supports/orientation toggle to <a class="dv-oid" href="#2a">2a</a>" · "show slicer-style layer preview"</p>
+</section>
+
+<section class="dv-turn" id="t3">
+  <div class="dv-thd"><a class="dv-tid" href="#t3">3</a><span class="dv-tname">Folder organization — n-level tree + multi-assign</span></div>
+  <p class="dv-tsub">One tree, any node checkable — a file can belong to many nested folders at once.</p>
+  <div class="dv-opts">
+    <div class="dv-opt" id="3a">
+      <div class="dv-olabel"><a class="dv-oid" href="#3a">3a</a>Multi-assign panel</div>
+      <div class="dv-card" style="width:760px;padding:0;">
+        <div style="padding:18px 22px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:12px;">
+          <div style="width:36px;height:36px;border-radius:6px;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 6px,#2b241e 6px,#2b241e 12px);flex:none;"></div>
+          <div><div style="font:600 13px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Add "Goblin_King_Mini.stl" to folders</div><div style="font:11.5px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.45);">Check any number of nodes — this file will appear in all of them</div></div>
+        </div>
+        <div style="padding:16px 22px;max-height:420px;overflow:auto;">
+          <div style="display:flex;flex-direction:column;gap:1px;font:13px 'IBM Plex Sans',sans-serif;">
+
+            <div style="display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:6px;">
+              <span style="width:16px;height:16px;border-radius:4px;border:1.5px solid rgba(242,237,228,.3);flex:none;"></span>
+              <span style="color:rgba(242,237,228,.4);">▾</span><span style="color:#f2ede4;">📁 Miniatures</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:7px 8px 7px 34px;border-radius:6px;background:rgba(255,138,61,.12);">
+              <span style="width:16px;height:16px;border-radius:4px;background:#ff8a3d;flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;color:#1a1512;">✓</span>
+              <span style="color:rgba(242,237,228,.4);">▾</span><span style="color:#f2ede4;">📁 DnD Campaign</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:7px 8px 7px 56px;border-radius:6px;">
+              <span style="width:16px;height:16px;border-radius:4px;border:1.5px solid rgba(242,237,228,.3);flex:none;"></span>
+              <span style="color:rgba(242,237,228,.75);">📁 Session 1 NPCs</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:7px 8px 7px 56px;border-radius:6px;">
+              <span style="width:16px;height:16px;border-radius:4px;border:1.5px solid rgba(242,237,228,.3);flex:none;"></span>
+              <span style="color:rgba(242,237,228,.75);">📁 Boss Fights</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:7px 8px 7px 34px;border-radius:6px;">
+              <span style="width:16px;height:16px;border-radius:4px;border:1.5px solid rgba(242,237,228,.3);flex:none;"></span>
+              <span style="color:rgba(242,237,228,.4);">▾</span><span style="color:#f2ede4;">📁 Warhammer</span>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:6px;margin-top:8px;">
+              <span style="width:16px;height:16px;border-radius:4px;border:1.5px solid rgba(242,237,228,.3);flex:none;"></span>
+              <span style="color:rgba(242,237,228,.4);">▾</span><span style="color:#f2ede4;">📁 Household</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:6px;">
+              <span style="width:16px;height:16px;border-radius:4px;border:1.5px solid rgba(242,237,228,.3);flex:none;"></span>
+              <span style="color:rgba(242,237,228,.4);">▾</span><span style="color:#f2ede4;">📁 Client Work</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:6px;background:rgba(255,138,61,.12);">
+              <span style="width:16px;height:16px;border-radius:4px;background:#ff8a3d;flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;color:#1a1512;">✓</span>
+              <span style="color:rgba(242,237,228,.4);">▾</span><span style="color:#f2ede4;">📁 Terrain</span>
+            </div>
+          </div>
+        </div>
+        <div style="padding:14px 22px;border-top:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center;">
+          <span style="font:12px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.4);">+ New folder</span>
+          <div style="display:flex;gap:8px;">
+            <span style="font:600 12.5px 'IBM Plex Sans',sans-serif;padding:8px 16px;border-radius:7px;color:rgba(242,237,228,.6);">Cancel</span>
+            <span style="font:600 12.5px 'IBM Plex Sans',sans-serif;padding:8px 16px;border-radius:7px;background:#ff8a3d;color:#1a1512;">Save (2)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="dv-next">Try next: "add drag-and-drop reordering to <a class="dv-oid" href="#3a">3a</a>" · "show a full folder-management screen"</p>
+</section>
+
+<section class="dv-turn" id="t4">
+  <div class="dv-thd"><a class="dv-tid" href="#t4">4</a><span class="dv-tname">Batch tagging</span></div>
+  <p class="dv-tsub">Select many files, assign folders/collections and tags in one pass.</p>
+  <div class="dv-opts">
+    <div class="dv-opt" id="4a">
+      <div class="dv-olabel"><a class="dv-oid" href="#4a">4a</a>Batch selection + assign panel</div>
+      <div class="dv-card" style="width:1120px;height:760px;display:flex;">
+        <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+          <div style="padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:12px;">
+            <span style="font:600 13px 'IBM Plex Sans',sans-serif;color:#f2ede4;">4 files selected</span>
+            <span style="font:11px 'IBM Plex Mono',monospace;color:rgba(242,237,228,.4);">of 42</span>
+          </div>
+          <div style="flex:1;overflow:auto;padding:18px 20px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px;align-content:start;">
+
+            <div style="background:#1c1815;border-radius:9px;overflow:hidden;box-shadow:0 0 0 2px #ff8a3d;position:relative;">
+              <span style="position:absolute;top:8px;left:8px;width:20px;height:20px;border-radius:5px;background:#ff8a3d;display:flex;align-items:center;justify-content:center;font-size:12px;color:#1a1512;z-index:1;">✓</span>
+              <div style="aspect-ratio:4/3;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 8px,#2b241e 8px,#2b241e 16px);"></div>
+              <div style="padding:9px 11px;font:600 12px 'IBM Plex Sans',sans-serif;color:#f2ede4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Skeleton_Archer.stl</div>
+            </div>
+            <div style="background:#1c1815;border-radius:9px;overflow:hidden;box-shadow:0 0 0 2px #ff8a3d;position:relative;">
+              <span style="position:absolute;top:8px;left:8px;width:20px;height:20px;border-radius:5px;background:#ff8a3d;display:flex;align-items:center;justify-content:center;font-size:12px;color:#1a1512;z-index:1;">✓</span>
+              <div style="aspect-ratio:4/3;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 8px,#2b241e 8px,#2b241e 16px);"></div>
+              <div style="padding:9px 11px;font:600 12px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Warband_Captain.3mf</div>
+            </div>
+            <div style="background:#1c1815;border-radius:9px;overflow:hidden;box-shadow:0 0 0 2px #ff8a3d;position:relative;">
+              <span style="position:absolute;top:8px;left:8px;width:20px;height:20px;border-radius:5px;background:#ff8a3d;display:flex;align-items:center;justify-content:center;font-size:12px;color:#1a1512;z-index:1;">✓</span>
+              <div style="aspect-ratio:4/3;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 8px,#2b241e 8px,#2b241e 16px);"></div>
+              <div style="padding:9px 11px;font:600 12px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Terrain_Ruins_Tile.stl</div>
+            </div>
+            <div style="background:#1c1815;border-radius:9px;overflow:hidden;box-shadow:0 0 0 2px #ff8a3d;position:relative;">
+              <span style="position:absolute;top:8px;left:8px;width:20px;height:20px;border-radius:5px;background:#ff8a3d;display:flex;align-items:center;justify-content:center;font-size:12px;color:#1a1512;z-index:1;">✓</span>
+              <div style="aspect-ratio:4/3;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 8px,#2b241e 8px,#2b241e 16px);"></div>
+              <div style="padding:9px 11px;font:600 12px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Goblin_King_Mini.stl</div>
+            </div>
+
+            <div style="background:#1c1815;border-radius:9px;overflow:hidden;opacity:.5;">
+              <div style="aspect-ratio:4/3;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 8px,#2b241e 8px,#2b241e 16px);"></div>
+              <div style="padding:9px 11px;font:600 12px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Chess_Knight_Set.3mf</div>
+            </div>
+            <div style="background:#1c1815;border-radius:9px;overflow:hidden;opacity:.5;">
+              <div style="aspect-ratio:4/3;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 8px,#2b241e 8px,#2b241e 16px);"></div>
+              <div style="padding:9px 11px;font:600 12px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Articulated_Dragon_v3.3mf</div>
+            </div>
+            <div style="background:#1c1815;border-radius:9px;overflow:hidden;opacity:.5;">
+              <div style="aspect-ratio:4/3;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 8px,#2b241e 8px,#2b241e 16px);"></div>
+              <div style="padding:9px 11px;font:600 12px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Phone_Stand_Adj.stl</div>
+            </div>
+            <div style="background:#1c1815;border-radius:9px;overflow:hidden;opacity:.5;">
+              <div style="aspect-ratio:4/3;background:repeating-linear-gradient(135deg,#241f1a,#241f1a 8px,#2b241e 8px,#2b241e 16px);"></div>
+              <div style="padding:9px 11px;font:600 12px 'IBM Plex Sans',sans-serif;color:#f2ede4;">Camera_Mount_Arm.stl</div>
+            </div>
+          </div>
+        </div>
+        <div style="width:300px;flex:none;background:#151210;border-left:1px solid rgba(255,255,255,.08);padding:20px;display:flex;flex-direction:column;">
+          <div style="font:600 13px 'IBM Plex Sans',sans-serif;color:#f2ede4;margin-bottom:16px;">Batch actions</div>
+
+          <div style="font:600 11px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.5);margin-bottom:8px;letter-spacing:.04em;">ADD TO FOLDER / COLLECTION</div>
+          <div style="background:#1f1b17;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:9px 12px;font:12px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.35);margin-bottom:14px;">Search or pick a folder…</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px;">
+            <span style="font:500 10.5px 'IBM Plex Mono',monospace;padding:4px 9px;border-radius:99px;background:rgba(255,138,61,.15);color:#ff8a3d;">Warhammer ✕</span>
+            <span style="font:500 10.5px 'IBM Plex Mono',monospace;padding:4px 9px;border-radius:99px;background:rgba(219,181,90,.15);color:#dbb55a;">To Print ✕</span>
+          </div>
+
+          <div style="font:600 11px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.5);margin-bottom:8px;letter-spacing:.04em;">TAGS</div>
+          <div style="background:#1f1b17;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:9px 12px;font:12px 'IBM Plex Sans',sans-serif;color:rgba(242,237,228,.35);margin-bottom:14px;">Add a tag…</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;">
+            <span style="font:500 10.5px 'IBM Plex Mono',monospace;padding:4px 9px;border-radius:99px;background:rgba(242,237,228,.08);color:rgba(242,237,228,.7);">32mm scale ✕</span>
+          </div>
+
+          <div style="flex:1;"></div>
+          <div style="display:flex;gap:8px;">
+            <span style="flex:1;text-align:center;font:600 12.5px 'IBM Plex Sans',sans-serif;padding:10px;border-radius:7px;color:rgba(242,237,228,.6);border:1px solid rgba(255,255,255,.1);">Cancel</span>
+            <span style="flex:1;text-align:center;font:600 12.5px 'IBM Plex Sans',sans-serif;padding:10px;border-radius:7px;background:#ff8a3d;color:#1a1512;">Apply to 4</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="dv-next">Try next: "pick a base layout for the full app" · "add print status (queued/printing/failed) as a batch action"</p>
+</section>
+
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,27 @@
+# Node / Frontend
+node_modules/
+dist/
+.vite/
+*.local
+
+# .NET / Backend
+bin/
+obj/
+*.user
+*.suo
+.vs/
+publish/
+
+# Docker
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+
+# Data (never commit the live DB or uploaded files)
+/data/
