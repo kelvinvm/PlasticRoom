@@ -1,0 +1,19 @@
+services:
+  backend:
+    build:
+      context: ./backend/PlasticRoom.Api
+    volumes:
+      - plasticroom-data:/data
+    environment:
+      - DATA_PATH=/data
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  plasticroom-data:
