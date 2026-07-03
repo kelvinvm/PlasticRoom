@@ -105,8 +105,9 @@ Deliverables:
 - Basic 3MF/STL metadata parsing on upload (dimensions, plate count, file size)
 - Thumbnail upload endpoint (receives PNG from client, writes to `/data/thumbs/`)
 
-**Status:** Spec written, implementation not started
+**Status:** Complete and merged to master (2026-07-03)
 **Spec:** [Phase 2 — Data Model & Core API](2026-07-03-phase-2-data-model-core-api.md)
+**Plan:** [Phase 2 implementation plan](../plans/2026-07-03-phase-2-data-model-core-api.md)
 
 ---
 
