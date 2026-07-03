@@ -106,6 +106,66 @@ public class FilesControllerTests : IDisposable
         Assert.Equal(uploadedB.Id, files[0].Id);
     }
 
+    [Fact]
+    public async System.Threading.Tasks.Task Update_SetsEditableFieldsOnly()
+    {
+        var uploaded = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            (await _controller.Upload(new UploadFileRequest { File = BuildStlFormFile("a.stl") }))).Value!;
+
+        var result = _controller.Update(uploaded.Id, new UpdateFileRequest(
+            "A nice widget", "PLA", 120, 0.2, "https://example.com/model", "Jane Doe"));
+
+        var dto = Assert.IsType<ModelFileDto>(Assert.IsType<OkObjectResult>(result).Value);
+        Assert.Equal("A nice widget", dto.Description);
+        Assert.Equal("PLA", dto.Material);
+        Assert.Equal(120, dto.EstPrintTimeMin);
+        Assert.Equal(0.2, dto.LayerHeightMm);
+        Assert.Equal("https://example.com/model", dto.SourceUrl);
+        Assert.Equal("Jane Doe", dto.Creator);
+        Assert.Equal(10, dto.DimXMm); // unchanged, not editable
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task Update_RejectsMalformedSourceUrl()
+    {
+        var uploaded = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            (await _controller.Upload(new UploadFileRequest { File = BuildStlFormFile("a.stl") }))).Value!;
+
+        var result = _controller.Update(uploaded.Id, new UpdateFileRequest(null, null, null, null, "not a url", null));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task Delete_RemovesFileRecordAndBlobFromDisk()
+    {
+        var uploaded = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            (await _controller.Upload(new UploadFileRequest { File = BuildStlFormFile("a.stl") }))).Value!;
+        var storedFilePath = Directory.GetFiles(_fileStorage.FilesDirectory).Single();
+
+        var result = _controller.Delete(uploaded.Id);
+
+        Assert.IsType<NoContentResult>(result);
+        Assert.False(System.IO.File.Exists(storedFilePath));
+        Assert.IsType<NotFoundObjectResult>(_controller.GetById(uploaded.Id));
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task UploadThumbnail_WritesPngAndSetsThumbnailPath()
+    {
+        var uploaded = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            (await _controller.Upload(new UploadFileRequest { File = BuildStlFormFile("a.stl") }))).Value!;
+
+        var pngBytes = new byte[] { 0x89, 0x50, 0x4E, 0x47 };
+        var pngFile = new FormFile(new MemoryStream(pngBytes), 0, pngBytes.Length, "file", "thumb.png");
+
+        var result = await _controller.UploadThumbnail(uploaded.Id, pngFile);
+
+        var dto = Assert.IsType<ModelFileDto>(Assert.IsType<OkObjectResult>(result).Value);
+        Assert.NotNull(dto.ThumbnailPath);
+        Assert.True(System.IO.File.Exists(dto.ThumbnailPath));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_tempDataDir))

@@ -163,6 +163,121 @@ public class FilesController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = modelFile.Oid }, ToDto(modelFile));
     }
 
+    [HttpPut("{id}")]
+    public IActionResult Update(int id, [FromBody] UpdateFileRequest request)
+    {
+        using var session = _sessionFactory.CreateSession();
+        var file = session.GetObjectByKey<ModelFile>(id);
+        if (file is null)
+        {
+            return NotFound(new { error = $"File {id} not found" });
+        }
+
+        if (!TryValidateSourceUrl(request.SourceUrl, out var sourceUrlError))
+        {
+            return BadRequest(new { error = sourceUrlError });
+        }
+
+        if (request.Description is not null)
+        {
+            file.Description = request.Description;
+        }
+
+        if (request.Material is not null)
+        {
+            file.Material = request.Material;
+        }
+
+        if (request.EstPrintTimeMin is int est)
+        {
+            file.EstPrintTimeMin = est;
+        }
+
+        if (request.LayerHeightMm is double lh)
+        {
+            file.LayerHeightMm = lh;
+        }
+
+        if (request.SourceUrl is not null)
+        {
+            file.SourceUrl = request.SourceUrl;
+        }
+
+        if (request.Creator is not null)
+        {
+            file.Creator = request.Creator;
+        }
+
+        file.Save();
+        return Ok(ToDto(file));
+    }
+
+    [HttpDelete("{id}")]
+    public IActionResult Delete(int id)
+    {
+        using var session = _sessionFactory.CreateSession();
+        var file = session.GetObjectByKey<ModelFile>(id);
+        if (file is null)
+        {
+            return NotFound(new { error = $"File {id} not found" });
+        }
+
+        foreach (var fileFolder in file.FileFolders.ToList())
+        {
+            fileFolder.Delete();
+        }
+
+        foreach (var fileTag in file.FileTags.ToList())
+        {
+            fileTag.Delete();
+        }
+
+        var storagePath = file.StoragePath;
+        var thumbnailPath = file.ThumbnailPath;
+
+        file.Delete();
+        session.PurgeDeletedObjects();
+
+        if (System.IO.File.Exists(storagePath))
+        {
+            System.IO.File.Delete(storagePath);
+        }
+
+        if (thumbnailPath is not null && System.IO.File.Exists(thumbnailPath))
+        {
+            System.IO.File.Delete(thumbnailPath);
+        }
+
+        return NoContent();
+    }
+
+    [HttpPost("{id}/thumbnail")]
+    public async Task<IActionResult> UploadThumbnail(int id, IFormFile file)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest(new { error = "A thumbnail file is required" });
+        }
+
+        using var session = _sessionFactory.CreateSession();
+        var modelFile = session.GetObjectByKey<ModelFile>(id);
+        if (modelFile is null)
+        {
+            return NotFound(new { error = $"File {id} not found" });
+        }
+
+        var thumbnailPath = Path.Combine(_fileStorage.ThumbsDirectory, $"{id}.png");
+        using (var destination = System.IO.File.Create(thumbnailPath))
+        {
+            await file.CopyToAsync(destination);
+        }
+
+        modelFile.ThumbnailPath = thumbnailPath;
+        modelFile.Save();
+
+        return Ok(ToDto(modelFile));
+    }
+
     private static bool TryValidateSourceUrl(string? sourceUrl, out string? error)
     {
         error = null;
