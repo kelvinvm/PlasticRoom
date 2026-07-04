@@ -19,46 +19,43 @@ export function fileTypeFromName(name: string): 'ThreeMf' | 'Stl' | null {
   return null
 }
 
-export function dimsFromGeometry(geometry: THREE.BufferGeometry): ModelDims {
-  geometry.computeBoundingBox()
-  const box = geometry.boundingBox ?? new THREE.Box3()
+// World-space bounding-box size of a rendered object, honoring the transforms
+// the loader bakes into each mesh (3MF build items are positioned across the
+// plate). Local-space bounds would ignore those transforms and misframe.
+export function dimsFromObject(object: THREE.Object3D): ModelDims {
+  object.updateMatrixWorld(true)
+  const box = new THREE.Box3().setFromObject(object)
+  if (box.isEmpty()) return { x: 0, y: 0, z: 0 }
   const size = new THREE.Vector3()
   box.getSize(size)
   return { x: size.x, y: size.y, z: size.z }
 }
 
-// Loads the file into a THREE.Object3D + geometry for measuring, and a plate
-// count for 3MF (build items). Pure JS — no WebGL — but not asserted in tests
-// because it needs the loaders' runtime; exercised by running the app.
+// Loads the file into a THREE.Object3D and a plate count for 3MF (build items).
+// Pure JS — no WebGL — but not asserted in tests because it needs the loaders'
+// runtime; exercised by running the app.
 async function loadModel(
   file: File,
-): Promise<{ object: THREE.Object3D; geometry: THREE.BufferGeometry; plateCount: number | null }> {
+): Promise<{ object: THREE.Object3D; plateCount: number | null }> {
   const buffer = await file.arrayBuffer()
   const type = fileTypeFromName(file.name)
   if (type === 'Stl') {
     const geometry = new STLLoader().parse(buffer)
     const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xd8cfc2 }))
-    return { object: mesh, geometry, plateCount: null }
+    return { object: mesh, plateCount: null }
   }
   if (type === 'ThreeMf') {
     const group = new ThreeMFLoader().parse(buffer)
-    const merged = new THREE.BufferGeometry()
-    const positions: number[] = []
     let plateCount = 0
     group.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        plateCount += 1
-        const pos = (child.geometry as THREE.BufferGeometry).attributes.position
-        if (pos) for (let i = 0; i < pos.array.length; i++) positions.push(pos.array[i] as number)
-      }
+      if (child instanceof THREE.Mesh) plateCount += 1
     })
-    merged.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
-    return { object: group, geometry: merged, plateCount: plateCount || 1 }
+    return { object: group, plateCount: plateCount || 1 }
   }
   throw new Error('Unsupported file type')
 }
 
-function renderToPng(object: THREE.Object3D, geometry: THREE.BufferGeometry): Promise<Blob> {
+function renderToPng(object: THREE.Object3D): Promise<Blob> {
   const size = 320
   const canvas = document.createElement('canvas')
   canvas.width = size
@@ -74,8 +71,10 @@ function renderToPng(object: THREE.Object3D, geometry: THREE.BufferGeometry): Pr
   scene.add(key)
   scene.add(object)
 
-  geometry.computeBoundingBox()
-  const box = geometry.boundingBox ?? new THREE.Box3()
+  // Frame the camera on the object's WORLD-space bounds so transformed 3MF
+  // build items (offset across the plate) stay in view.
+  object.updateMatrixWorld(true)
+  const box = new THREE.Box3().setFromObject(object)
   const center = new THREE.Vector3()
   const extent = new THREE.Vector3()
   box.getCenter(center)
@@ -98,8 +97,8 @@ function renderToPng(object: THREE.Object3D, geometry: THREE.BufferGeometry): Pr
 }
 
 export const generateThumbnail: ThumbnailGenerator = async (file) => {
-  const { object, geometry, plateCount } = await loadModel(file)
-  const dims = dimsFromGeometry(geometry)
-  const pngBlob = await renderToPng(object, geometry)
+  const { object, plateCount } = await loadModel(file)
+  const dims = dimsFromObject(object)
+  const pngBlob = await renderToPng(object)
   return { pngBlob, dims, plateCount }
 }
