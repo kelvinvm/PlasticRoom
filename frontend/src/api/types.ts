@@ -36,3 +36,9 @@ export interface Tag {
   name: string
   colorKey: string | null
 }
+
+export interface UploadFileInput {
+  file: File
+  folderIds: number[]
+  tagIds: number[]
+}
