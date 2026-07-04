@@ -117,6 +117,24 @@ public class FilesController : ControllerBase
         return PhysicalFile(file.StoragePath, contentType, file.Name, enableRangeProcessing: true);
     }
 
+    [HttpGet("{id}/thumbnail")]
+    public IActionResult GetThumbnail(int id)
+    {
+        using var session = _sessionFactory.CreateSession();
+        var file = session.GetObjectByKey<ModelFile>(id);
+        if (file is null)
+        {
+            return NotFound(new { error = $"File {id} not found" });
+        }
+
+        if (string.IsNullOrEmpty(file.ThumbnailPath) || !System.IO.File.Exists(file.ThumbnailPath))
+        {
+            return NotFound(new { error = $"File {id} has no thumbnail" });
+        }
+
+        return PhysicalFile(file.ThumbnailPath, "image/png");
+    }
+
     [HttpPost]
     public async Task<IActionResult> Upload([FromForm] UploadFileRequest request)
     {

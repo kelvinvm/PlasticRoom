@@ -45,6 +45,14 @@ public class FilesControllerTests : IDisposable
         return new FormFile(new MemoryStream(bytes), 0, bytes.Length, "file", fileName);
     }
 
+    private static IFormFile BuildPngFormFile(string fileName)
+    {
+        // Minimal 1x1 PNG.
+        var bytes = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==");
+        return new FormFile(new MemoryStream(bytes), 0, bytes.Length, "file", fileName);
+    }
+
     [Fact]
     public async System.Threading.Tasks.Task Upload_ParsesStlAndCreatesFileRecord()
     {
@@ -373,6 +381,35 @@ public class FilesControllerTests : IDisposable
         foreach (var f in Directory.GetFiles(_fileStorage.FilesDirectory)) System.IO.File.Delete(f);
 
         Assert.IsType<NotFoundObjectResult>(_controller.GetContent(dto.Id));
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetThumbnail_Returns404_WhenNoThumbnail()
+    {
+        var dto = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            await _controller.Upload(new UploadFileRequest { File = BuildStlFormFile("nothumb.stl") })).Value!;
+
+        Assert.IsType<NotFoundObjectResult>(_controller.GetThumbnail(dto.Id));
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetThumbnail_ReturnsPng_AfterUpload()
+    {
+        var dto = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            await _controller.Upload(new UploadFileRequest { File = BuildStlFormFile("hasthumb.stl") })).Value!;
+        await _controller.UploadThumbnail(dto.Id, BuildPngFormFile($"{dto.Id}.png"));
+
+        var result = _controller.GetThumbnail(dto.Id);
+
+        var file = Assert.IsType<PhysicalFileResult>(result);
+        Assert.Equal("image/png", file.ContentType);
+        Assert.True(System.IO.File.Exists(file.FileName));
+    }
+
+    [Fact]
+    public void GetThumbnail_Returns404_ForUnknownId()
+    {
+        Assert.IsType<NotFoundObjectResult>(_controller.GetThumbnail(999999));
     }
 
     public void Dispose()
