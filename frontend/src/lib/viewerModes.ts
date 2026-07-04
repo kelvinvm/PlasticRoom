@@ -14,12 +14,23 @@ export const PLATE_COLORS: number[] = [
   0xb98cff, // violet
 ]
 
-function eachMaterial(object: THREE.Object3D, fn: (m: THREE.MeshStandardMaterial) => void): void {
+// Duck-typed guard: matches any material carrying a `wireframe` boolean and a
+// `THREE.Color` `color` (MeshStandardMaterial, MeshPhongMaterial, MeshLambertMaterial,
+// MeshPhysicalMaterial, MeshBasicMaterial). Needed because three's ThreeMFLoader builds
+// MeshPhongMaterial for ordinary non-PBR 3MF materials, which does not extend
+// MeshStandardMaterial.
+type ColorableMaterial = THREE.Material & { wireframe: boolean; color: THREE.Color }
+
+function isColorable(m: THREE.Material): m is ColorableMaterial {
+  return 'wireframe' in m && 'color' in m && (m as { color: unknown }).color instanceof THREE.Color
+}
+
+function eachMaterial(object: THREE.Object3D, fn: (m: ColorableMaterial) => void): void {
   object.traverse((child) => {
     if (child instanceof THREE.Mesh) {
       const materials = Array.isArray(child.material) ? child.material : [child.material]
       for (const m of materials) {
-        if (m instanceof THREE.MeshStandardMaterial) fn(m)
+        if (isColorable(m)) fn(m)
       }
     }
   })

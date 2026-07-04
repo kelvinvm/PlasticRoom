@@ -38,6 +38,18 @@ describe('applyRenderMode', () => {
   })
 })
 
+describe('applyRenderMode with non-MeshStandardMaterial materials', () => {
+  it('handles MeshPhongMaterial as built by ThreeMFLoader for non-PBR 3MF materials', () => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshPhongMaterial({ color: 0xffffff }))
+
+    applyRenderMode([mesh], 'wireframe')
+    expect((mesh.material as THREE.MeshPhongMaterial).wireframe).toBe(true)
+
+    applyRenderMode([mesh], 'plates')
+    expect((mesh.material as THREE.MeshPhongMaterial).color.getHex()).toBe(PLATE_COLORS[0])
+  })
+})
+
 describe('setActivePlate', () => {
   it('hides all but the active index', () => {
     const objs = meshObjects(3)
