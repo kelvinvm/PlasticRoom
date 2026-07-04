@@ -56,4 +56,21 @@ describe('DetailInfoPanel', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/couldn't save/i))
     expect(onSaved).not.toHaveBeenCalled()
   })
+
+  it('clears a stale save error when navigating to a different file', async () => {
+    vi.spyOn(client, 'updateFileDescription').mockRejectedValue(new Error('boom'))
+    const { rerender } = render(
+      <DetailInfoPanel file={file} folders={[]} tags={[]} onDescriptionSaved={() => {}} />,
+    )
+    const box = screen.getByLabelText('Description')
+    fireEvent.change(box, { target: { value: 'edited' } })
+    fireEvent.blur(box)
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
+
+    // Navigate to a different file (different id).
+    const other = { ...file, id: file.id + 1, description: 'other' }
+    rerender(<DetailInfoPanel file={other} folders={[]} tags={[]} onDescriptionSaved={() => {}} />)
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
 })

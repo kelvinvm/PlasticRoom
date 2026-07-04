@@ -29,8 +29,14 @@ export function DetailInfoPanel({
   // Intentionally depends on file.id only: local `description` state owns the
   // edit between navigations, so it must not be clobbered when the same file's
   // description prop echoes back (e.g. after a save round-trip via reload()).
+  // Also resets transient save state (saveError/saving) so a stale error from
+  // a previous file doesn't linger on the newly navigated-to file's panel.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => setDescription(file.description ?? ''), [file.id])
+  useEffect(() => {
+    setDescription(file.description ?? '')
+    setSaveError(false)
+    setSaving(false)
+  }, [file.id])
 
   const rows: Row[] = []
   const dims = formatDimensions(file.dimXMm, file.dimYMm, file.dimZMm)
