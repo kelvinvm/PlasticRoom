@@ -139,8 +139,9 @@ Deliverables:
 - "Import N files" commits all parsed files to the API (upload file + thumbnail + metadata)
 - Failed files excluded from commit count
 
-**Status:** Not started  
-**Spec:** *(to be written when Phase 4 begins)*
+**Status:** Complete and merged to master (2026-07-04)
+**Spec:** [Phase 4 — Import Flow](2026-07-04-phase-4-import-flow.md)
+**Plan:** [Phase 4 implementation plan](../plans/2026-07-04-phase-4-import-flow.md)
 
 ---
 
