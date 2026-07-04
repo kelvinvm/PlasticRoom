@@ -1,74 +1,18 @@
 import { useState } from 'react'
-import { Sidebar } from './components/Sidebar'
-import { LibraryToolbar } from './components/LibraryToolbar'
-import { FileGrid } from './components/FileGrid'
-import { FileDetailPanel } from './components/FileDetailPanel'
-import { useFolders } from './hooks/useFolders'
-import { useTags } from './hooks/useTags'
-import { useFiles } from './hooks/useFiles'
-import { useDebouncedValue } from './hooks/useDebouncedValue'
-import styles from './App.module.css'
+import { LibraryView } from './views/LibraryView'
+import { ImportView } from './views/ImportView'
 
 export default function App() {
-  const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null)
-  const [selectedFileId, setSelectedFileId] = useState<number | null>(null)
-  const [search, setSearch] = useState('')
-  const debouncedSearch = useDebouncedValue(search, 250)
+  const [view, setView] = useState<'library' | 'import'>('library')
+  const [libraryKey, setLibraryKey] = useState(0)
 
-  const { folders } = useFolders()
-  const { tags } = useTags()
-  const { files, loading, error } = useFiles(selectedFolderId, debouncedSearch)
-
-  const title =
-    selectedFolderId === null
-      ? 'All Files'
-      : (folders.find((f) => f.id === selectedFolderId)?.name ?? 'Folder')
-
-  const selectedFile = files.find((f) => f.id === selectedFileId) ?? null
-
-  const handleSelectFolder = (id: number | null) => {
-    setSelectedFolderId(id)
-  }
-
-  let center
-  if (loading) {
-    center = <div className={styles.status}>Loading…</div>
-  } else if (error) {
-    center = <div className={styles.status}>Could not load files. Is the backend running?</div>
-  } else if (files.length === 0) {
-    center = (
-      <div className={styles.status}>
-        {debouncedSearch.trim() ? 'No files match your search' : 'No files in this view'}
-      </div>
-    )
-  } else {
-    center = (
-      <FileGrid
-        files={files}
-        tags={tags}
-        selectedFileId={selectedFileId}
-        onSelectFile={setSelectedFileId}
+  if (view === 'import') {
+    return (
+      <ImportView
+        onBack={() => setView('library')}
+        onImported={() => { setLibraryKey((k) => k + 1); setView('library') }}
       />
     )
   }
-
-  return (
-    <div className={styles.app}>
-      <Sidebar
-        folders={folders}
-        selectedFolderId={selectedFolderId}
-        onSelectFolder={handleSelectFolder}
-      />
-      <main className={styles.center}>
-        <LibraryToolbar
-          title={title}
-          fileCount={files.length}
-          search={search}
-          onSearchChange={setSearch}
-        />
-        <div className={styles.centerBody}>{center}</div>
-      </main>
-      <FileDetailPanel file={selectedFile} folders={folders} tags={tags} />
-    </div>
-  )
+  return <LibraryView key={libraryKey} onImport={() => setView('import')} />
 }

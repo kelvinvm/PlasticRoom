@@ -6,6 +6,7 @@ interface SidebarProps {
   folders: Folder[]
   selectedFolderId: number | null
   onSelectFolder: (id: number | null) => void
+  onImport: () => void
 }
 
 interface RowProps {
@@ -44,7 +45,7 @@ function FolderRow({ node, depth, selectedFolderId, onSelectFolder }: RowProps) 
   )
 }
 
-export function Sidebar({ folders, selectedFolderId, onSelectFolder }: SidebarProps) {
+export function Sidebar({ folders, selectedFolderId, onSelectFolder, onImport }: SidebarProps) {
   const libraryTree = buildFolderTree(folders.filter((f) => !f.isSystem))
   const collectionsTree = buildFolderTree(folders.filter((f) => f.isSystem))
   const allFilesSelected = selectedFolderId === null
@@ -55,6 +56,10 @@ export function Sidebar({ folders, selectedFolderId, onSelectFolder }: SidebarPr
         <span className={styles.brandMark} aria-hidden="true" />
         <span className={styles.brandName}>PlasticRoom</span>
       </div>
+
+      <button type="button" className={styles.importButton} onClick={onImport}>
+        ⬆ Import files
+      </button>
 
       <div className={styles.sectionLabel}>Library</div>
       <button
