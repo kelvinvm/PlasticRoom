@@ -70,3 +70,17 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.importButton {
+  display: block;
+  width: calc(100% - 24px);
+  margin: 12px;
+  background: var(--accent);
+  color: var(--accent-text);
+  border: none;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px;
+  cursor: pointer;
+}

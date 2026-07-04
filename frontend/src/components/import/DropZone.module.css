@@ -1,0 +1,18 @@
+.zone {
+  border: 1.5px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 9px;
+  padding: 28px 20px;
+  text-align: center;
+  cursor: pointer;
+  background: var(--bg-surface);
+}
+.over { border-color: var(--accent); background: var(--accent-tint); }
+.disabled { opacity: 0.5; cursor: not-allowed; }
+.icon {
+  width: 44px; height: 44px; margin: 0 auto 10px;
+  display: grid; place-items: center;
+  background: var(--accent); color: var(--accent-text);
+  border-radius: 9px; font-size: 20px;
+}
+.title { color: var(--text-primary); font-size: 13px; font-weight: 600; }
+.sub { color: var(--text-secondary); font-size: 11px; margin-top: 4px; }

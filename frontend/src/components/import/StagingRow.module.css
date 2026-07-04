@@ -1,0 +1,19 @@
+.row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 14px;
+  background: var(--bg-surface);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9px;
+}
+.thumb {
+  width: 44px; height: 44px; flex: none; border-radius: 6px; overflow: hidden;
+  background: repeating-linear-gradient(135deg, #241f1a, #241f1a 8px, #2b241e 8px, #2b241e 16px);
+}
+.img { width: 100%; height: 100%; object-fit: cover; }
+.info { flex: 1; min-width: 0; }
+.name { color: var(--text-primary); font-size: 13px; font-weight: 600; }
+.meta { color: var(--text-secondary); font-family: var(--font-mono); font-size: 11px; margin-top: 2px; }
+.metaBad { color: var(--error); }
+.status { font-family: var(--font-mono); font-size: 11px; flex: none; }
+.statusOk { color: var(--success); }
+.statusBad { color: var(--error); }

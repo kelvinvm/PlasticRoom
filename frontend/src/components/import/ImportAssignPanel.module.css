@@ -1,0 +1,12 @@
+.panel { width: 280px; flex: none; padding: 20px; background: var(--bg-panel); border-left: 1px solid rgba(255, 255, 255, 0.08); overflow-y: auto; }
+.label { color: var(--text-tertiary); font-size: 10px; letter-spacing: 0.08em; font-weight: 600; margin: 18px 0 8px; }
+.label:first-child { margin-top: 0; }
+.input { width: 100%; box-sizing: border-box; background: var(--bg-surface); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 7px; color: var(--text-primary); font-size: 13px; padding: 8px 10px; }
+.results { list-style: none; margin: 6px 0 0; padding: 0; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 7px; overflow: hidden; }
+.result { display: block; width: 100%; text-align: left; background: var(--bg-surface); color: var(--text-primary); border: none; padding: 8px 10px; font-size: 13px; cursor: pointer; }
+.result:hover { background: var(--accent-tint); }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.pill { background: var(--bg-surface); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 99px; color: var(--text-primary); font-size: 11px; padding: 4px 10px; cursor: pointer; }
+.warn { color: var(--text-secondary); font-size: 11px; margin: 16px 0 8px; }
+.importBtn { width: 100%; margin-top: 16px; background: var(--accent); color: var(--accent-text); border: none; border-radius: 7px; font-size: 13px; font-weight: 600; padding: 10px; cursor: pointer; }
+.importBtn:disabled { opacity: 0.5; cursor: not-allowed; }

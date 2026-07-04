@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -60,5 +61,14 @@ describe('App', () => {
     mockApi(() => [])
     render(<App />)
     await waitFor(() => expect(screen.getByText(/no files/i)).toBeInTheDocument())
+  })
+
+  it('switches to the import view when Import is clicked, and back on cancel', async () => {
+    render(<App />)
+    await waitFor(() => expect(screen.getByText('Miniatures')).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /import files/i }))
+    await waitFor(() => expect(screen.getByText(/drop 3mf/i)).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }))
+    await waitFor(() => expect(screen.getByText('Miniatures')).toBeInTheDocument())
   })
 })
