@@ -71,3 +71,64 @@ describe('useImportStaging — add/parse', () => {
     expect(result.current.selectedTagIds).toContain(99)
   })
 })
+
+describe('useImportStaging — commit', () => {
+  beforeEach(() => {
+    vi.stubGlobal('URL', { createObjectURL: () => 'blob:x', revokeObjectURL: () => {} })
+  })
+  afterEach(() => vi.unstubAllGlobals())
+
+  const addReady = async (result: { current: ReturnType<typeof useImportStaging> }, names: string[]) => {
+    act(() => result.current.addFiles(names.map((n) => stlFile(n))))
+    await waitFor(() => expect(result.current.readyCount).toBe(names.length))
+  }
+
+  it('imports ready files sequentially, passing folder/tag ids, then marks imported', async () => {
+    const order: string[] = []
+    const api = stubApi()
+    api.uploadFile = vi.fn(async ({ file, folderIds, tagIds }) => {
+      order.push(file.name)
+      expect(folderIds).toEqual([2])
+      expect(tagIds).toEqual([5])
+      return { id: order.length } as never
+    }) as ImportStagingApi['uploadFile']
+    const { result } = renderHook(() => useImportStaging({ generate: okGenerate, api }))
+    await addReady(result, ['a.stl', 'b.stl'])
+    act(() => { result.current.toggleFolder(2); result.current.toggleTag(5) })
+
+    await act(async () => { await result.current.importAll() })
+
+    expect(order).toEqual(['a.stl', 'b.stl'])
+    expect(result.current.items.every((it) => it.status === 'imported')).toBe(true)
+    expect(api.uploadThumbnail).toHaveBeenCalledTimes(2)
+    expect(result.current.allDone).toBe(true)
+  })
+
+  it('keeps other files imported when one upload fails, then retries only the failure', async () => {
+    const api = stubApi()
+    let calls = 0
+    api.uploadFile = vi.fn(async ({ file }) => {
+      calls++
+      if (file.name === 'bad.stl' && calls === 2) throw new Error('500')
+      return { id: calls } as never
+    }) as ImportStagingApi['uploadFile']
+    const { result } = renderHook(() => useImportStaging({ generate: okGenerate, api }))
+    await addReady(result, ['good.stl', 'bad.stl'])
+
+    await act(async () => { await result.current.importAll() })
+    const statuses = () => result.current.items.map((it) => `${it.name}:${it.status}`)
+    expect(statuses()).toEqual(['good.stl:imported', 'bad.stl:import-error'])
+
+    await act(async () => { await result.current.retryFailed() })
+    expect(result.current.items.find((it) => it.name === 'bad.stl')!.status).toBe('imported')
+  })
+
+  it('still marks imported when the thumbnail upload fails (non-fatal)', async () => {
+    const api = stubApi()
+    api.uploadThumbnail = vi.fn(async () => { throw new Error('thumb 500') }) as unknown as ImportStagingApi['uploadThumbnail']
+    const { result } = renderHook(() => useImportStaging({ generate: okGenerate, api }))
+    await addReady(result, ['a.stl'])
+    await act(async () => { await result.current.importAll() })
+    expect(result.current.items[0].status).toBe('imported')
+  })
+})

@@ -111,9 +111,53 @@ export function useImportStaging(deps: UseImportStagingDeps) {
     [items],
   )
 
-  // importAll / retryFailed implemented in Task 4.
-  const importAll = useCallback(async () => {}, [])
-  const retryFailed = useCallback(async () => {}, [])
+  const commitOne = useCallback(
+    async (item: StagingItem) => {
+      patch(item.id, { status: 'importing', error: undefined })
+      try {
+        const created = await api.uploadFile({
+          file: item.file,
+          folderIds: selectedFolderIds,
+          tagIds: selectedTagIds,
+        })
+        if (item.thumbnailBlob) {
+          try {
+            await api.uploadThumbnail(created.id, item.thumbnailBlob)
+          } catch {
+            // thumbnail is non-fatal: the file is imported regardless
+          }
+        }
+        patch(item.id, { status: 'imported' })
+      } catch {
+        patch(item.id, { status: 'import-error', error: 'Upload failed' })
+      }
+    },
+    [api, patch, selectedFolderIds, selectedTagIds],
+  )
+
+  const commitBatch = useCallback(
+    async (targets: StagingItem[]) => {
+      setImporting(true)
+      try {
+        for (const item of targets) {
+          await commitOne(item)
+        }
+      } finally {
+        setImporting(false)
+      }
+    },
+    [commitOne],
+  )
+
+  const importAll = useCallback(
+    () => commitBatch(items.filter((it) => it.status === 'ready')),
+    [commitBatch, items],
+  )
+
+  const retryFailed = useCallback(
+    () => commitBatch(items.filter((it) => it.status === 'import-error')),
+    [commitBatch, items],
+  )
 
   return {
     items,
