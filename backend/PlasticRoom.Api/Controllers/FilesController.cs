@@ -26,7 +26,7 @@ public class FilesController : ControllerBase
     }
 
     [HttpGet]
-    public IActionResult GetAll([FromQuery] int? folderId)
+    public IActionResult GetAll([FromQuery] int? folderId, [FromQuery] string? q)
     {
         using var session = _sessionFactory.CreateSession();
 
@@ -39,14 +39,50 @@ public class FilesController : ControllerBase
                 return NotFound(new { error = $"Folder {fid} not found" });
             }
 
-            files = folder.FileFolders.Select(ff => ff.File).ToList();
+            files = CollectSelfAndDescendants(folder)
+                .SelectMany(f => f.FileFolders.Select(ff => ff.File))
+                .DistinctBy(f => f.Oid)
+                .ToList();
         }
         else
         {
             files = new XPCollection<ModelFile>(session).ToList();
         }
 
+        var trimmed = q?.Trim();
+        if (!string.IsNullOrEmpty(trimmed))
+        {
+            files = files
+                .Where(f =>
+                    f.Name.Contains(trimmed, StringComparison.OrdinalIgnoreCase) ||
+                    (f.Description is not null &&
+                     f.Description.Contains(trimmed, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+        }
+
         return Ok(files.Select(ToDto).ToList());
+    }
+
+    private static List<Folder> CollectSelfAndDescendants(Folder root)
+    {
+        var result = new List<Folder>();
+        var seen = new HashSet<int>();
+        var stack = new Stack<Folder>();
+        stack.Push(root);
+        while (stack.Count > 0)
+        {
+            var current = stack.Pop();
+            if (!seen.Add(current.Oid))
+            {
+                continue;
+            }
+            result.Add(current);
+            foreach (var child in current.Children)
+            {
+                stack.Push(child);
+            }
+        }
+        return result;
     }
 
     [HttpGet("{id}")]

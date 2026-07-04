@@ -99,11 +99,108 @@ public class FilesControllerTests : IDisposable
             folderId = folder.Oid;
         }
 
-        var result = Assert.IsType<OkObjectResult>(_controller.GetAll(folderId));
+        var result = Assert.IsType<OkObjectResult>(_controller.GetAll(folderId, null));
         var files = Assert.IsAssignableFrom<List<ModelFileDto>>(result.Value);
 
         Assert.Single(files);
         Assert.Equal(uploadedB.Id, files[0].Id);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetAll_IncludesFilesFromDescendantFolders()
+    {
+        var parentFile = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            (await _controller.Upload(new UploadFileRequest { File = BuildStlFormFile("parent.stl") }))).Value!;
+        var childFile = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            (await _controller.Upload(new UploadFileRequest { File = BuildStlFormFile("child.stl") }))).Value!;
+
+        int parentFolderId;
+        using (var session = _sessionFactory.CreateSession())
+        {
+            var parent = new PlasticRoom.Api.Entities.Folder(session) { Name = "Parent" };
+            parent.Save();
+            var child = new PlasticRoom.Api.Entities.Folder(session) { Name = "Child", ParentFolder = parent };
+            child.Save();
+            var pf = session.GetObjectByKey<PlasticRoom.Api.Entities.ModelFile>(parentFile.Id);
+            var cf = session.GetObjectByKey<PlasticRoom.Api.Entities.ModelFile>(childFile.Id);
+            new PlasticRoom.Api.Entities.FileFolder(session) { File = pf!, Folder = parent }.Save();
+            new PlasticRoom.Api.Entities.FileFolder(session) { File = cf!, Folder = child }.Save();
+            parentFolderId = parent.Oid;
+        }
+
+        var result = Assert.IsType<OkObjectResult>(_controller.GetAll(parentFolderId, null));
+        var files = Assert.IsAssignableFrom<List<ModelFileDto>>(result.Value);
+
+        Assert.Equal(2, files.Count);
+        Assert.Contains(files, f => f.Id == parentFile.Id);
+        Assert.Contains(files, f => f.Id == childFile.Id);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetAll_DeduplicatesFileInMultipleFoldersOfSubtree()
+    {
+        var file = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            (await _controller.Upload(new UploadFileRequest { File = BuildStlFormFile("shared.stl") }))).Value!;
+
+        int parentFolderId;
+        using (var session = _sessionFactory.CreateSession())
+        {
+            var parent = new PlasticRoom.Api.Entities.Folder(session) { Name = "Parent" };
+            parent.Save();
+            var child = new PlasticRoom.Api.Entities.Folder(session) { Name = "Child", ParentFolder = parent };
+            child.Save();
+            var f = session.GetObjectByKey<PlasticRoom.Api.Entities.ModelFile>(file.Id);
+            new PlasticRoom.Api.Entities.FileFolder(session) { File = f!, Folder = parent }.Save();
+            new PlasticRoom.Api.Entities.FileFolder(session) { File = f!, Folder = child }.Save();
+            parentFolderId = parent.Oid;
+        }
+
+        var result = Assert.IsType<OkObjectResult>(_controller.GetAll(parentFolderId, null));
+        var files = Assert.IsAssignableFrom<List<ModelFileDto>>(result.Value);
+
+        Assert.Single(files);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetAll_FiltersBySearchQueryOnNameAndDescriptionCaseInsensitively()
+    {
+        var dragon = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            (await _controller.Upload(new UploadFileRequest { File = BuildStlFormFile("Dragon.stl") }))).Value!;
+        var knight = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            (await _controller.Upload(new UploadFileRequest { File = BuildStlFormFile("Knight.stl") }))).Value!;
+        _controller.Update(knight.Id, new UpdateFileRequest("A fearsome DRAGON slayer", null, null, null, null, null));
+
+        var result = Assert.IsType<OkObjectResult>(_controller.GetAll(null, "dragon"));
+        var files = Assert.IsAssignableFrom<List<ModelFileDto>>(result.Value);
+
+        Assert.Equal(2, files.Count); // Dragon.stl by name, Knight.stl by description
+        Assert.Contains(files, f => f.Id == dragon.Id);
+        Assert.Contains(files, f => f.Id == knight.Id);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetAll_CombinesFolderScopeAndSearch()
+    {
+        var inFolder = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            (await _controller.Upload(new UploadFileRequest { File = BuildStlFormFile("Dragon.stl") }))).Value!;
+        // A second matching-name file NOT in the folder must be excluded by the folder scope.
+        await _controller.Upload(new UploadFileRequest { File = BuildStlFormFile("Dragon2.stl") });
+
+        int folderId;
+        using (var session = _sessionFactory.CreateSession())
+        {
+            var folder = new PlasticRoom.Api.Entities.Folder(session) { Name = "Minis" };
+            folder.Save();
+            var f = session.GetObjectByKey<PlasticRoom.Api.Entities.ModelFile>(inFolder.Id);
+            new PlasticRoom.Api.Entities.FileFolder(session) { File = f!, Folder = folder }.Save();
+            folderId = folder.Oid;
+        }
+
+        var result = Assert.IsType<OkObjectResult>(_controller.GetAll(folderId, "dragon"));
+        var files = Assert.IsAssignableFrom<List<ModelFileDto>>(result.Value);
+
+        Assert.Single(files);
+        Assert.Equal(inFolder.Id, files[0].Id);
     }
 
     [Fact]
@@ -216,6 +313,36 @@ public class FilesControllerTests : IDisposable
 
         var dto = Assert.IsType<ModelFileDto>(Assert.IsType<OkObjectResult>(result).Value);
         Assert.Equal(new[] { tagBId }, dto.TagIds);
+    }
+
+    [Fact(Timeout = 10000)]
+    public async System.Threading.Tasks.Task GetAll_WithFolderCycle_TerminatesAndReturnsFiles()
+    {
+        var file = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            (await _controller.Upload(new UploadFileRequest { File = BuildStlFormFile("cyclic.stl") }))).Value!;
+
+        int folderAId;
+        using (var session = _sessionFactory.CreateSession())
+        {
+            var a = new PlasticRoom.Api.Entities.Folder(session) { Name = "A" };
+            var b = new PlasticRoom.Api.Entities.Folder(session) { Name = "B" };
+            a.Save();
+            b.Save();
+            // Create a cycle: A -> B -> A
+            a.ParentFolder = b;
+            b.ParentFolder = a;
+            a.Save();
+            b.Save();
+            var f = session.GetObjectByKey<PlasticRoom.Api.Entities.ModelFile>(file.Id);
+            new PlasticRoom.Api.Entities.FileFolder(session) { File = f!, Folder = a }.Save();
+            folderAId = a.Oid;
+        }
+
+        var result = Assert.IsType<OkObjectResult>(_controller.GetAll(folderAId, null));
+        var files = Assert.IsAssignableFrom<List<ModelFileDto>>(result.Value);
+
+        Assert.Single(files);
+        Assert.Equal(file.Id, files[0].Id);
     }
 
     public void Dispose()
