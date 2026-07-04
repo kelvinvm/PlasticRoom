@@ -122,8 +122,9 @@ Deliverables:
 - Navigation: click folder → filter grid; click file card → update right panel
 - Search: filters visible cards client-side (or via API query param)
 
-**Status:** Spec written; implementation not started  
+**Status:** Complete and merged to master (2026-07-03)
 **Spec:** [Phase 3 — Main Library UI](2026-07-03-phase-3-main-library-ui.md)
+**Plan:** [Phase 3 implementation plan](../plans/2026-07-03-phase-3-main-library-ui.md)
 
 ---
 
