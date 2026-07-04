@@ -98,6 +98,25 @@ public class FilesController : ControllerBase
         return Ok(ToDto(file));
     }
 
+    [HttpGet("{id}/content")]
+    public IActionResult GetContent(int id)
+    {
+        using var session = _sessionFactory.CreateSession();
+        var file = session.GetObjectByKey<ModelFile>(id);
+        if (file is null)
+        {
+            return NotFound(new { error = $"File {id} not found" });
+        }
+
+        if (string.IsNullOrEmpty(file.StoragePath) || !System.IO.File.Exists(file.StoragePath))
+        {
+            return NotFound(new { error = $"File {id} content is missing on disk" });
+        }
+
+        var contentType = file.Type == ModelFileType.ThreeMf ? "model/3mf" : "model/stl";
+        return PhysicalFile(file.StoragePath, contentType, file.Name, enableRangeProcessing: true);
+    }
+
     [HttpPost]
     public async Task<IActionResult> Upload([FromForm] UploadFileRequest request)
     {

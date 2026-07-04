@@ -345,6 +345,36 @@ public class FilesControllerTests : IDisposable
         Assert.Equal(file.Id, files[0].Id);
     }
 
+    [Fact]
+    public async System.Threading.Tasks.Task GetContent_ReturnsPhysicalFile_ForExistingFile()
+    {
+        var dto = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            await _controller.Upload(new UploadFileRequest { File = BuildStlFormFile("widget.stl") })).Value!;
+
+        var result = _controller.GetContent(dto.Id);
+
+        var file = Assert.IsType<PhysicalFileResult>(result);
+        Assert.Equal("model/stl", file.ContentType);
+        Assert.True(file.EnableRangeProcessing);
+        Assert.True(System.IO.File.Exists(file.FileName));
+    }
+
+    [Fact]
+    public void GetContent_Returns404_ForUnknownId()
+    {
+        Assert.IsType<NotFoundObjectResult>(_controller.GetContent(999999));
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetContent_Returns404_WhenFileMissingOnDisk()
+    {
+        var dto = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            await _controller.Upload(new UploadFileRequest { File = BuildStlFormFile("gone.stl") })).Value!;
+        foreach (var f in Directory.GetFiles(_fileStorage.FilesDirectory)) System.IO.File.Delete(f);
+
+        Assert.IsType<NotFoundObjectResult>(_controller.GetContent(dto.Id));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_tempDataDir))
