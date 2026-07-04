@@ -44,4 +44,16 @@ describe('DetailInfoPanel', () => {
     render(<DetailInfoPanel file={file} folders={[]} tags={[]} onDescriptionSaved={() => {}} />)
     expect(screen.getByRole('button', { name: '+ add' })).toBeDisabled()
   })
+
+  it('shows an error hint when saving the description fails', async () => {
+    const spy = vi.spyOn(client, 'updateFileDescription').mockRejectedValue(new Error('boom'))
+    const onSaved = vi.fn()
+    render(<DetailInfoPanel file={file} folders={[]} tags={[]} onDescriptionSaved={onSaved} />)
+    const box = screen.getByLabelText('Description')
+    fireEvent.change(box, { target: { value: 'edited' } })
+    fireEvent.blur(box)
+    await waitFor(() => expect(spy).toHaveBeenCalledWith(5, 'edited'))
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/couldn't save/i))
+    expect(onSaved).not.toHaveBeenCalled()
+  })
 })

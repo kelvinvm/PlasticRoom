@@ -23,9 +23,14 @@ export function DetailInfoPanel({
 }) {
   const [description, setDescription] = useState(file.description ?? '')
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState(false)
 
   // Re-sync when navigating to a different file.
-  useEffect(() => setDescription(file.description ?? ''), [file.id, file.description])
+  // Intentionally depends on file.id only: local `description` state owns the
+  // edit between navigations, so it must not be clobbered when the same file's
+  // description prop echoes back (e.g. after a save round-trip via reload()).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => setDescription(file.description ?? ''), [file.id])
 
   const rows: Row[] = []
   const dims = formatDimensions(file.dimXMm, file.dimYMm, file.dimZMm)
@@ -44,12 +49,16 @@ export function DetailInfoPanel({
     .filter((t): t is Tag => t !== undefined)
 
   async function handleBlur() {
+    if (saving) return
     const next = description
     if (next === (file.description ?? '')) return
     setSaving(true)
     try {
       const updated = await updateFileDescription(file.id, next)
       onDescriptionSaved(updated)
+      setSaveError(false)
+    } catch {
+      setSaveError(true)
     } finally {
       setSaving(false)
     }
@@ -80,11 +89,19 @@ export function DetailInfoPanel({
           className={styles.description}
           aria-label="Description"
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={(e) => {
+            setDescription(e.target.value)
+            setSaveError(false)
+          }}
           onBlur={handleBlur}
           placeholder="Add a description…"
         />
         {saving && <span className={styles.savingHint}>Saving…</span>}
+        {saveError && (
+          <span className={styles.errorHint} role="alert">
+            Couldn't save — try again
+          </span>
+        )}
       </section>
 
       <section className={styles.section}>

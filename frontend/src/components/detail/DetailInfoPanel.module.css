@@ -60,7 +60,7 @@
   resize: vertical;
   background: var(--bg-surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-chip, 6px);
+  border-radius: var(--radius-chip);
   padding: 8px;
   color: var(--text-primary);
   font-family: var(--font-ui, inherit);
@@ -73,6 +73,14 @@
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--text-tertiary);
+}
+
+.errorHint {
+  display: inline-block;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--error);
 }
 
 .chips {
