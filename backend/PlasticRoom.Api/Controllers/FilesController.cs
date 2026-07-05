@@ -135,6 +135,25 @@ public class FilesController : ControllerBase
         return PhysicalFile(file.ThumbnailPath, "image/png");
     }
 
+    [HttpGet("{id}/plates/{index}/thumbnail")]
+    public IActionResult GetPlateThumbnail(int id, int index)
+    {
+        using var session = _sessionFactory.CreateSession();
+        var file = session.GetObjectByKey<ModelFile>(id);
+        if (file is null)
+        {
+            return NotFound(new { error = $"File {id} not found" });
+        }
+
+        var plate = file.Plates.FirstOrDefault(p => p.Index == index);
+        if (plate is null || string.IsNullOrEmpty(plate.ThumbnailPath) || !System.IO.File.Exists(plate.ThumbnailPath))
+        {
+            return NotFound(new { error = $"Plate {index} thumbnail for file {id} not found" });
+        }
+
+        return PhysicalFile(plate.ThumbnailPath, "image/png");
+    }
+
     [HttpPost]
     public async Task<IActionResult> Upload([FromForm] UploadFileRequest request)
     {

@@ -475,6 +475,34 @@ public class FilesControllerTests : IDisposable
         Assert.Equal(2, Directory.GetFiles(_fileStorage.ThumbsDirectory, "*_plate_*.png").Length);
     }
 
+    [Fact]
+    public async System.Threading.Tasks.Task GetPlateThumbnail_ReturnsPng()
+    {
+        var dto = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            await _controller.Upload(new UploadFileRequest { File = BuildBambuThreeMfFormFile("shelf.3mf") })).Value!;
+
+        var result = _controller.GetPlateThumbnail(dto.Id, 1);
+
+        var file = Assert.IsType<PhysicalFileResult>(result);
+        Assert.Equal("image/png", file.ContentType);
+        Assert.True(System.IO.File.Exists(file.FileName));
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetPlateThumbnail_Returns404_ForUnknownPlate()
+    {
+        var dto = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            await _controller.Upload(new UploadFileRequest { File = BuildBambuThreeMfFormFile("shelf.3mf") })).Value!;
+
+        Assert.IsType<NotFoundObjectResult>(_controller.GetPlateThumbnail(dto.Id, 99));
+    }
+
+    [Fact]
+    public void GetPlateThumbnail_Returns404_ForUnknownFile()
+    {
+        Assert.IsType<NotFoundObjectResult>(_controller.GetPlateThumbnail(999999, 1));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_tempDataDir))
