@@ -80,19 +80,12 @@ export function DetailView({
   return (
     <div className={styles.detail}>
       <div className={styles.main}>
-        <div className={styles.breadcrumb}>
+        <div className={styles.breadcrumb} data-testid="breadcrumb">
           <button type="button" className={styles.crumbLink} onClick={onBack}>
             {originName}
           </button>
-          {/*
-           * Separator + file name share a single text node (not a sibling
-           * span) so this element's own text is "› dragon.3mf", not
-           * "dragon.3mf" alone — DetailInfoPanel's <h2> already owns that
-           * exact string as its sole content, and a second leaf node with
-           * the identical isolated text would make `getByText(name)` (used
-           * by callers/tests to locate the file name) ambiguous.
-           */}
-          <span className={styles.crumbCurrent}>› {file?.name ?? '…'}</span>
+          <span className={styles.crumbSep}>›</span>
+          <span className={styles.crumbCurrent}>{file?.name ?? '…'}</span>
         </div>
 
         <div className={styles.viewerArea}>

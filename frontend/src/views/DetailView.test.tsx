@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { DetailView } from './DetailView'
 import * as client from '../api/client'
 import * as foldersHook from '../hooks/useFolders'
@@ -30,7 +30,9 @@ describe('DetailView', () => {
 
   it('renders the breadcrumb with the origin folder and file name', async () => {
     render(<DetailView fileId={5} fromFolder={{ id: 1, name: 'Miniatures' }} onBack={() => {}} />)
-    await waitFor(() => expect(screen.getByText('dragon.3mf')).toBeInTheDocument())
+    await waitFor(() =>
+      expect(within(screen.getByTestId('breadcrumb')).getByText('dragon.3mf')).toBeInTheDocument(),
+    )
     expect(screen.getByRole('button', { name: 'Miniatures' })).toBeInTheDocument()
   })
 
@@ -45,5 +47,6 @@ describe('DetailView', () => {
   it('shows an error state in the viewer area when content fails to load', async () => {
     render(<DetailView fileId={5} fromFolder={null} onBack={() => {}} />)
     await waitFor(() => expect(screen.getByText(/couldn't load this model/i)).toBeInTheDocument())
+    expect(screen.getByText('SPECS')).toBeInTheDocument()
   })
 })

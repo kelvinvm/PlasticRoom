@@ -33,6 +33,10 @@
   color: var(--accent);
 }
 
+.crumbSep {
+  color: var(--text-tertiary);
+}
+
 .crumbCurrent {
   font-weight: 600;
   color: var(--text-primary);
