@@ -2,17 +2,17 @@ import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { LoadedModel } from '../../lib/modelLoading'
-import { applyRenderMode, setActivePlate, type RenderMode } from '../../lib/viewerModes'
+import { applyRenderMode, setVisibleObjects, type RenderMode } from '../../lib/viewerModes'
 import styles from './ModelViewer.module.css'
 
 export function ModelViewer({
   model,
   mode,
-  activePlate,
+  visibleIndices,
 }: {
   model: LoadedModel
   mode: RenderMode
-  activePlate: number | null
+  visibleIndices: number[] | null
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
@@ -111,11 +111,11 @@ export function ModelViewer({
   // Apply render mode + plate isolation whenever they change.
   useEffect(() => {
     applyRenderMode(model.objects, mode)
-    setActivePlate(model.objects, activePlate)
+    setVisibleObjects(model.objects, visibleIndices)
     if (rendererRef.current && sceneRef.current && cameraRef.current) {
       rendererRef.current.render(sceneRef.current, cameraRef.current)
     }
-  }, [model, mode, activePlate])
+  }, [model, mode, visibleIndices])
 
   return (
     <div className={styles.stage}>
