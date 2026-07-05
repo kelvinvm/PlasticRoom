@@ -88,4 +88,17 @@ describe('App', () => {
     fireEvent.click(screen.getByText('close-detail'))
     expect(screen.queryByTestId('detail-view')).not.toBeInTheDocument()
   })
+
+  it('shows the batch panel when multiple files are selected', async () => {
+    const goblin: ModelFile = { ...dragon, id: 11, name: 'Goblin.stl' }
+    mockApi(() => [dragon, goblin])
+    render(<App />)
+    await waitFor(() => expect(screen.getByText('Dragon.stl')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByText('Dragon.stl'))
+    fireEvent.click(screen.getByText('Goblin.stl'), { ctrlKey: true })
+
+    expect(screen.getByRole('heading', { name: '2 files selected' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Apply to 2' })).toBeInTheDocument()
+  })
 })
