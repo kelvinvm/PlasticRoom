@@ -1,8 +1,14 @@
 import * as THREE from 'three'
-import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
-import { ThreeMFLoader } from 'three/examples/jsm/loaders/3MFLoader.js'
+import {
+  type ModelDims,
+  type ModelFileType,
+  dimsFromObject,
+  fileTypeFromName,
+  loadModelFromBuffer,
+} from './modelLoading'
 
-export type ModelDims = { x: number; y: number; z: number }
+export type { ModelDims } from './modelLoading'
+export { fileTypeFromName, dimsFromObject } from './modelLoading'
 
 export interface ThumbnailResult {
   pngBlob: Blob
@@ -12,47 +18,15 @@ export interface ThumbnailResult {
 
 export type ThumbnailGenerator = (file: File) => Promise<ThumbnailResult>
 
-export function fileTypeFromName(name: string): 'ThreeMf' | 'Stl' | null {
-  const lower = name.toLowerCase()
-  if (lower.endsWith('.stl')) return 'Stl'
-  if (lower.endsWith('.3mf')) return 'ThreeMf'
-  return null
-}
-
-// World-space bounding-box size of a rendered object, honoring the transforms
-// the loader bakes into each mesh (3MF build items are positioned across the
-// plate). Local-space bounds would ignore those transforms and misframe.
-export function dimsFromObject(object: THREE.Object3D): ModelDims {
-  object.updateMatrixWorld(true)
-  const box = new THREE.Box3().setFromObject(object)
-  if (box.isEmpty()) return { x: 0, y: 0, z: 0 }
-  const size = new THREE.Vector3()
-  box.getSize(size)
-  return { x: size.x, y: size.y, z: size.z }
-}
-
-// Loads the file into a THREE.Object3D and a plate count for 3MF (build items).
-// Pure JS — no WebGL — but not asserted in tests because it needs the loaders'
-// runtime; exercised by running the app.
-async function loadModel(
+async function loadFromFile(
   file: File,
 ): Promise<{ object: THREE.Object3D; plateCount: number | null }> {
   const buffer = await file.arrayBuffer()
-  const type = fileTypeFromName(file.name)
-  if (type === 'Stl') {
-    const geometry = new STLLoader().parse(buffer)
-    const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xd8cfc2 }))
-    return { object: mesh, plateCount: null }
-  }
-  if (type === 'ThreeMf') {
-    const group = new ThreeMFLoader().parse(buffer)
-    let plateCount = 0
-    group.traverse((child) => {
-      if (child instanceof THREE.Mesh) plateCount += 1
-    })
-    return { object: group, plateCount: plateCount || 1 }
-  }
-  throw new Error('Unsupported file type')
+  const type: ModelFileType | null = fileTypeFromName(file.name)
+  if (type === null) throw new Error('Unsupported file type')
+  const { object, objects } = loadModelFromBuffer(buffer, type)
+  const plateCount = type === 'ThreeMf' ? objects.length || 1 : null
+  return { object, plateCount }
 }
 
 function renderToPng(object: THREE.Object3D): Promise<Blob> {
@@ -71,8 +45,6 @@ function renderToPng(object: THREE.Object3D): Promise<Blob> {
   scene.add(key)
   scene.add(object)
 
-  // Frame the camera on the object's WORLD-space bounds so transformed 3MF
-  // build items (offset across the plate) stay in view.
   object.updateMatrixWorld(true)
   const box = new THREE.Box3().setFromObject(object)
   const center = new THREE.Vector3()
@@ -97,7 +69,7 @@ function renderToPng(object: THREE.Object3D): Promise<Blob> {
 }
 
 export const generateThumbnail: ThumbnailGenerator = async (file) => {
-  const { object, plateCount } = await loadModel(file)
+  const { object, plateCount } = await loadFromFile(file)
   const dims = dimsFromObject(object)
   const pngBlob = await renderToPng(object)
   return { pngBlob, dims, plateCount }

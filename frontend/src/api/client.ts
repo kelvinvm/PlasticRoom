@@ -61,3 +61,25 @@ export function getFiles(folderId: number | null, q: string): Promise<ModelFile[
   const query = params.toString()
   return getJson<ModelFile[]>(`/api/files${query ? `?${query}` : ''}`)
 }
+
+export function getFile(id: number): Promise<ModelFile> {
+  return getJson<ModelFile>(`/api/files/${id}`)
+}
+
+export function fileContentUrl(id: number): string {
+  return `/api/files/${id}/content`
+}
+
+export function fileThumbnailUrl(id: number): string {
+  return `/api/files/${id}/thumbnail`
+}
+
+export async function updateFileDescription(id: number, description: string): Promise<ModelFile> {
+  const url = `/api/files/${id}`
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ description }),
+  })
+  return parseJsonOrThrow<ModelFile>(res, url)
+}

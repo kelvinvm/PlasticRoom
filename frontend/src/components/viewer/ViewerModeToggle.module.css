@@ -1,0 +1,29 @@
+.toggle {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-button);
+}
+
+.segment {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 5px 12px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.segment:hover {
+  color: var(--text-primary);
+}
+
+.active {
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}

@@ -4,6 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import type { Folder, ModelFile, Tag } from './api/types'
 
+vi.mock('./views/DetailView', () => ({
+  DetailView: (props: { onBack: () => void }) => (
+    <div data-testid="detail-view">
+      <button onClick={props.onBack}>close-detail</button>
+    </div>
+  ),
+}))
+
 const folders: Folder[] = [
   { id: 1, name: 'Miniatures', parentId: null, description: null, coverImageFileId: null, sortOrder: 0, isSystem: false },
   { id: 2, name: 'Favorites', parentId: null, description: null, coverImageFileId: null, sortOrder: 0, isSystem: true },
@@ -70,5 +78,14 @@ describe('App', () => {
     await waitFor(() => expect(screen.getByText(/drop 3mf/i)).toBeInTheDocument())
     fireEvent.click(screen.getByRole('button', { name: /cancel/i }))
     await waitFor(() => expect(screen.getByText('Miniatures')).toBeInTheDocument())
+  })
+
+  it('opens the detail layer when a file is opened and closes on back', async () => {
+    render(<App />)
+    const card = await screen.findByRole('button', { name: /\.stl|\.3mf/i })
+    fireEvent.doubleClick(card)
+    expect(screen.getByTestId('detail-view')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('close-detail'))
+    expect(screen.queryByTestId('detail-view')).not.toBeInTheDocument()
   })
 })

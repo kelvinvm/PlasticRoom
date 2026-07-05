@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import type { ModelFile, Tag } from '../api/types'
+import { fileThumbnailUrl } from '../api/client'
 import { tagColor } from '../lib/format'
 import styles from './FileGrid.module.css'
 
@@ -7,6 +9,7 @@ interface FileGridProps {
   tags: Tag[]
   selectedFileId: number | null
   onSelectFile: (id: number) => void
+  onOpenFile: (id: number) => void
 }
 
 export function typeLabel(type: ModelFile['type']): string {
@@ -18,12 +21,16 @@ interface CardProps {
   tags: Tag[]
   selected: boolean
   onSelect: (id: number) => void
+  onOpen: (id: number) => void
 }
 
-function FileCard({ file, tags, selected, onSelect }: CardProps) {
+function FileCard({ file, tags, selected, onSelect, onOpen }: CardProps) {
+  const [thumbFailed, setThumbFailed] = useState(false)
   const fileTags = file.tagIds
     .map((id) => tags.find((t) => t.id === id))
     .filter((t): t is Tag => t !== undefined)
+
+  const showImg = file.thumbnailPath !== null && !thumbFailed
 
   return (
     <button
@@ -31,9 +38,19 @@ function FileCard({ file, tags, selected, onSelect }: CardProps) {
       className={`${styles.card} ${selected ? styles.cardSelected : ''}`}
       aria-current={selected ? 'true' : undefined}
       onClick={() => onSelect(file.id)}
+      onDoubleClick={() => onOpen(file.id)}
     >
       <div className={styles.thumb}>
-        <span className={styles.thumbLabel}>{typeLabel(file.type)} PREVIEW</span>
+        {showImg ? (
+          <img
+            className={styles.thumbImg}
+            src={fileThumbnailUrl(file.id)}
+            alt={`${file.name} preview`}
+            onError={() => setThumbFailed(true)}
+          />
+        ) : (
+          <span className={styles.thumbLabel}>{typeLabel(file.type)} PREVIEW</span>
+        )}
       </div>
       <div className={styles.name}>{file.name}</div>
       {file.description && <div className={styles.description}>{file.description}</div>}
@@ -54,7 +71,7 @@ function FileCard({ file, tags, selected, onSelect }: CardProps) {
   )
 }
 
-export function FileGrid({ files, tags, selectedFileId, onSelectFile }: FileGridProps) {
+export function FileGrid({ files, tags, selectedFileId, onSelectFile, onOpenFile }: FileGridProps) {
   return (
     <div className={styles.grid}>
       {files.map((file) => (
@@ -64,6 +81,7 @@ export function FileGrid({ files, tags, selectedFileId, onSelectFile }: FileGrid
           tags={tags}
           selected={file.id === selectedFileId}
           onSelect={onSelectFile}
+          onOpen={onOpenFile}
         />
       ))}
     </div>
