@@ -1,5 +1,11 @@
 export type ModelFileType = 'ThreeMf' | 'Stl'
 
+export interface Plate {
+  index: number
+  name: string
+  buildItemIndices: number[]
+}
+
 export interface ModelFile {
   id: number
   name: string
@@ -19,6 +25,7 @@ export interface ModelFile {
   thumbnailPath: string | null
   folderIds: number[]
   tagIds: number[]
+  plates: Plate[]
 }
 
 export interface Folder {

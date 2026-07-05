@@ -29,3 +29,10 @@ $env:SEED_SAMPLE_DATA = "true"; dotnet run --project PlasticRoom.Api   # PowerSh
 
 Seeding is idempotent: it is skipped if any non-system folder already exists, so it
 runs only against a fresh database.
+
+### Bambu plate metadata
+
+3MF files sliced in Bambu Studio carry real print-plate data (`Metadata/model_settings.config`).
+On import, PlasticRoom records each plate (name, embedded thumbnail, object grouping) and the
+detail view's filmstrip shows those plates. **Files imported before this feature must be
+re-imported** to gain plate data; until then they fall back to one cell per 3MF build item.

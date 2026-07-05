@@ -21,7 +21,7 @@ const dragon: ModelFile = {
   id: 10, name: 'Dragon.stl', type: 'Stl', sizeBytes: 1024, addedAt: '2026-01-01T00:00:00Z',
   dimXMm: 10, dimYMm: 10, dimZMm: 10, plateCount: null, estPrintTimeMin: null,
   material: null, layerHeightMm: null, sourceUrl: null, creator: null,
-  description: 'A dragon', thumbnailPath: null, folderIds: [1], tagIds: [1],
+  description: 'A dragon', thumbnailPath: null, folderIds: [1], tagIds: [1], plates: [],
 }
 
 function mockApi(filesForCall: () => ModelFile[]) {

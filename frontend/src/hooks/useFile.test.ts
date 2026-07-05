@@ -8,7 +8,7 @@ const sample: ModelFile = {
   id: 7, name: 'dragon.3mf', type: 'ThreeMf', sizeBytes: 1000, addedAt: '2026-07-04T00:00:00Z',
   dimXMm: 10, dimYMm: 20, dimZMm: 30, plateCount: 2, estPrintTimeMin: null, material: null,
   layerHeightMm: null, sourceUrl: null, creator: null, description: 'hi', thumbnailPath: 't',
-  folderIds: [], tagIds: [],
+  folderIds: [], tagIds: [], plates: [],
 }
 
 describe('useFile', () => {

@@ -126,4 +126,7 @@ public class ModelFile : XPObject
 
     [Association("File-FileTags")]
     public XPCollection<FileTag> FileTags => GetCollection<FileTag>(nameof(FileTags));
+
+    [Association("File-Plates")]
+    public XPCollection<Plate> Plates => GetCollection<Plate>(nameof(Plates));
 }

@@ -9,6 +9,7 @@ import { ModelViewer } from '../components/viewer/ModelViewer'
 import { ViewerModeToggle } from '../components/viewer/ViewerModeToggle'
 import { PlateFilmstrip } from '../components/viewer/PlateFilmstrip'
 import { DetailInfoPanel } from '../components/detail/DetailInfoPanel'
+import { buildViewerPlates, type ViewerPlate } from '../lib/viewerPlates'
 import type { RenderMode } from '../lib/viewerModes'
 import type { ModelFile } from '../api/types'
 import styles from './DetailView.module.css'
@@ -53,12 +54,18 @@ export function DetailView({
       .then((buffer) => {
         if (cancelled) return
         const loaded = loadModelFromBuffer(buffer, type)
-        // Generate per-plate thumbnails BEFORE the live viewer takes the model
+        // Bambu files carry server-stored plate thumbnails; only client-render
+        // fallback per-build-item thumbnails when there are no server plates.
+        // Generate them BEFORE the live viewer takes the model
         // (renderPlateThumbnails temporarily reparents model.object). A failure
         // here must never block the model from rendering.
-        try {
-          setPlateThumbs(renderPlateThumbnails(loaded))
-        } catch {
+        if (file.plates.length === 0) {
+          try {
+            setPlateThumbs(renderPlateThumbnails(loaded))
+          } catch {
+            setPlateThumbs([])
+          }
+        } else {
           setPlateThumbs([])
         }
         setModel(loaded)
@@ -76,6 +83,11 @@ export function DetailView({
 
   const originName = fromFolder?.name ?? 'Library'
 
+  const viewerPlates: ViewerPlate[] =
+    file && model ? buildViewerPlates(file, model.objects.length, plateThumbs) : []
+  const visibleIndices =
+    activePlate === null ? null : (viewerPlates[activePlate]?.objectIndices ?? null)
+
   let viewerBody
   if (modelError || error) {
     viewerBody = (
@@ -87,10 +99,8 @@ export function DetailView({
   } else if (!model) {
     viewerBody = <div className={styles.viewerStatus}>Loading model…</div>
   } else {
-    viewerBody = <ModelViewer model={model} mode={mode} activePlate={activePlate} />
+    viewerBody = <ModelViewer model={model} mode={mode} visibleIndices={visibleIndices} />
   }
-
-  const plateCount = model?.objects.length ?? 0
 
   return (
     <div className={styles.detail}>
@@ -108,12 +118,8 @@ export function DetailView({
             <ViewerModeToggle mode={mode} onChange={setMode} />
           </div>
           {viewerBody}
-          <PlateFilmstrip
-            count={plateCount}
-            activeIndex={activePlate}
-            onSelect={setActivePlate}
-            thumbnailUrls={plateThumbs}
-          />
+          <PlateFilmstrip plates={viewerPlates} activeIndex={activePlate} onSelect={setActivePlate} />
+
         </div>
       </div>
 

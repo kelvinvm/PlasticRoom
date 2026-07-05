@@ -7,7 +7,7 @@ const file = (id: number, name: string, type: ModelFile['type'], tagIds: number[
   id, name, type, sizeBytes: 1024, addedAt: '2026-01-01T00:00:00Z',
   dimXMm: 10, dimYMm: 10, dimZMm: 10, plateCount: null, estPrintTimeMin: null,
   material: null, layerHeightMm: null, sourceUrl: null, creator: null,
-  description: `${name} description`, thumbnailPath: null, folderIds: [], tagIds,
+  description: `${name} description`, thumbnailPath: null, folderIds: [], tagIds, plates: [],
 })
 
 const tags: Tag[] = [{ id: 1, name: 'Resin', colorKey: 'brass' }]
@@ -16,7 +16,7 @@ const sampleFile: ModelFile = {
   id: 1, name: 'widget.stl', type: 'Stl', sizeBytes: 100, addedAt: '2026-07-04T00:00:00Z',
   dimXMm: null, dimYMm: null, dimZMm: null, plateCount: null, estPrintTimeMin: null,
   material: null, layerHeightMm: null, sourceUrl: null, creator: null,
-  description: null, thumbnailPath: null, folderIds: [], tagIds: [],
+  description: null, thumbnailPath: null, folderIds: [], tagIds: [], plates: [],
 }
 
 describe('FileGrid', () => {

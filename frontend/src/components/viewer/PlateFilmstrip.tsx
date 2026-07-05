@@ -1,17 +1,16 @@
+import type { ViewerPlate } from '../../lib/viewerPlates'
 import styles from './PlateFilmstrip.module.css'
 
 export function PlateFilmstrip({
-  count,
+  plates,
   activeIndex,
   onSelect,
-  thumbnailUrls,
 }: {
-  count: number
+  plates: ViewerPlate[]
   activeIndex: number | null
   onSelect: (index: number | null) => void
-  thumbnailUrls?: (string | null)[]
 }) {
-  if (count <= 1) return null
+  if (plates.length <= 1) return null
 
   return (
     <div className={styles.strip} role="group" aria-label="Plates">
@@ -24,26 +23,24 @@ export function PlateFilmstrip({
       >
         <span className={styles.allLabel}>ALL</span>
       </button>
-      {Array.from({ length: count }, (_, i) => {
-        const url = thumbnailUrls?.[i] ?? null
-        return (
-          <button
-            key={i}
-            type="button"
-            className={`${styles.cell} ${activeIndex === i ? styles.active : ''}`}
-            aria-pressed={activeIndex === i}
-            aria-label={`Plate ${i + 1}`}
-            onClick={() => onSelect(i)}
-          >
-            {url ? (
-              <img className={styles.thumb} src={url} alt="" />
-            ) : (
-              <span className={styles.placeholder} />
-            )}
-            <span className={styles.index}>{i + 1}</span>
-          </button>
-        )
-      })}
+      {plates.map((plate, i) => (
+        <button
+          key={i}
+          type="button"
+          className={`${styles.cell} ${activeIndex === i ? styles.active : ''}`}
+          aria-pressed={activeIndex === i}
+          aria-label={plate.label}
+          title={plate.label}
+          onClick={() => onSelect(i)}
+        >
+          {plate.thumbnailUrl ? (
+            <img className={styles.thumb} src={plate.thumbnailUrl} alt="" />
+          ) : (
+            <span className={styles.placeholder} />
+          )}
+          <span className={styles.index}>{i + 1}</span>
+        </button>
+      ))}
     </div>
   )
 }

@@ -53,6 +53,52 @@ public class FilesControllerTests : IDisposable
         return new FormFile(new MemoryStream(bytes), 0, bytes.Length, "file", fileName);
     }
 
+    private static IFormFile BuildBambuThreeMfFormFile(string fileName)
+    {
+        const string modelXml =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+            "<model unit=\"millimeter\" xmlns=\"http://schemas.microsoft.com/3dmanufacturing/core/2015/02\">" +
+            "<resources><object id=\"1\" type=\"model\"><mesh><vertices>" +
+            "<vertex x=\"0\" y=\"0\" z=\"0\"/><vertex x=\"10\" y=\"0\" z=\"0\"/>" +
+            "<vertex x=\"0\" y=\"5\" z=\"0\"/><vertex x=\"0\" y=\"0\" z=\"2\"/></vertices>" +
+            "<triangles><triangle v1=\"0\" v2=\"1\" v3=\"2\"/></triangles></mesh></object></resources>" +
+            "<build><item objectid=\"1\"/><item objectid=\"2\"/></build></model>";
+        const string settingsXml =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?><config>" +
+            "<plate><metadata key=\"plater_id\" value=\"1\"/><metadata key=\"plater_name\" value=\"Corners\"/>" +
+            "<metadata key=\"thumbnail_file\" value=\"Metadata/plate_1.png\"/>" +
+            "<model_instance><metadata key=\"object_id\" value=\"1\"/></model_instance></plate>" +
+            "<plate><metadata key=\"plater_id\" value=\"2\"/><metadata key=\"plater_name\" value=\"Base\"/>" +
+            "<metadata key=\"thumbnail_file\" value=\"Metadata/plate_2.png\"/>" +
+            "<model_instance><metadata key=\"object_id\" value=\"2\"/></model_instance></plate></config>";
+        var pngBytes = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==");
+
+        using var stream = new MemoryStream();
+        using (var archive = new System.IO.Compression.ZipArchive(stream, System.IO.Compression.ZipArchiveMode.Create, leaveOpen: true))
+        {
+            WriteZipText(archive, "3D/3dmodel.model", modelXml);
+            WriteZipText(archive, "Metadata/model_settings.config", settingsXml);
+            WriteZipBytes(archive, "Metadata/plate_1.png", pngBytes);
+            WriteZipBytes(archive, "Metadata/plate_2.png", pngBytes);
+        }
+        var bytes = stream.ToArray();
+        return new FormFile(new MemoryStream(bytes), 0, bytes.Length, "file", fileName);
+    }
+
+    private static void WriteZipText(System.IO.Compression.ZipArchive a, string name, string text)
+    {
+        using var s = a.CreateEntry(name).Open();
+        using var w = new StreamWriter(s, new UTF8Encoding(false));
+        w.Write(text);
+    }
+
+    private static void WriteZipBytes(System.IO.Compression.ZipArchive a, string name, byte[] data)
+    {
+        using var s = a.CreateEntry(name).Open();
+        s.Write(data, 0, data.Length);
+    }
+
     [Fact]
     public async System.Threading.Tasks.Task Upload_ParsesStlAndCreatesFileRecord()
     {
@@ -410,6 +456,64 @@ public class FilesControllerTests : IDisposable
     public void GetThumbnail_Returns404_ForUnknownId()
     {
         Assert.IsType<NotFoundObjectResult>(_controller.GetThumbnail(999999));
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task Upload_ParsesBambuPlates()
+    {
+        var request = new UploadFileRequest { File = BuildBambuThreeMfFormFile("shelf.3mf") };
+
+        var result = await _controller.Upload(request);
+
+        var dto = Assert.IsType<ModelFileDto>(Assert.IsType<CreatedAtActionResult>(result).Value);
+        Assert.Equal(2, dto.PlateCount);
+        Assert.Equal(2, dto.Plates.Count);
+        Assert.Equal("Corners", dto.Plates[0].Name);
+        Assert.Equal(new[] { 0 }, dto.Plates[0].BuildItemIndices);
+        Assert.Equal(new[] { 1 }, dto.Plates[1].BuildItemIndices);
+        // Two plate PNGs were extracted alongside the file.
+        Assert.Equal(2, Directory.GetFiles(_fileStorage.ThumbsDirectory, "*_plate_*.png").Length);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetPlateThumbnail_ReturnsPng()
+    {
+        var dto = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            await _controller.Upload(new UploadFileRequest { File = BuildBambuThreeMfFormFile("shelf.3mf") })).Value!;
+
+        var result = _controller.GetPlateThumbnail(dto.Id, 1);
+
+        var file = Assert.IsType<PhysicalFileResult>(result);
+        Assert.Equal("image/png", file.ContentType);
+        Assert.True(System.IO.File.Exists(file.FileName));
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetPlateThumbnail_Returns404_ForUnknownPlate()
+    {
+        var dto = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            await _controller.Upload(new UploadFileRequest { File = BuildBambuThreeMfFormFile("shelf.3mf") })).Value!;
+
+        Assert.IsType<NotFoundObjectResult>(_controller.GetPlateThumbnail(dto.Id, 99));
+    }
+
+    [Fact]
+    public void GetPlateThumbnail_Returns404_ForUnknownFile()
+    {
+        Assert.IsType<NotFoundObjectResult>(_controller.GetPlateThumbnail(999999, 1));
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task Delete_RemovesPlatesAndPngs()
+    {
+        var dto = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            await _controller.Upload(new UploadFileRequest { File = BuildBambuThreeMfFormFile("shelf.3mf") })).Value!;
+        Assert.Equal(2, Directory.GetFiles(_fileStorage.ThumbsDirectory, "*_plate_*.png").Length);
+
+        _controller.Delete(dto.Id);
+
+        Assert.Empty(Directory.GetFiles(_fileStorage.ThumbsDirectory, "*_plate_*.png"));
+        Assert.IsType<NotFoundObjectResult>(_controller.GetById(dto.Id));
     }
 
     public void Dispose()

@@ -21,14 +21,14 @@ function makeModel(): LoadedModel {
 
 describe('ModelViewer', () => {
   it('mounts a canvas without throwing when WebGL is unavailable', () => {
-    const { container } = render(<ModelViewer model={makeModel()} mode="solid" activePlate={null} />)
+    const { container } = render(<ModelViewer model={makeModel()} mode="solid" visibleIndices={null} />)
     expect(container.querySelector('canvas')).not.toBeNull()
   })
 
   it('re-renders on mode change without throwing', () => {
     const model = makeModel()
-    const { rerender } = render(<ModelViewer model={model} mode="solid" activePlate={null} />)
-    rerender(<ModelViewer model={model} mode="wireframe" activePlate={null} />)
+    const { rerender } = render(<ModelViewer model={model} mode="solid" visibleIndices={null} />)
+    rerender(<ModelViewer model={model} mode="wireframe" visibleIndices={null} />)
     // Scene-graph mutation happened via viewerModes; assert the material reflects it.
     expect((model.objects[0] as THREE.Mesh).material).toBeInstanceOf(THREE.MeshStandardMaterial)
   })
