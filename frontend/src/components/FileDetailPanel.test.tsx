@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { FileDetailPanel } from './FileDetailPanel'
 import type { Folder, ModelFile, Tag } from '../api/types'
@@ -29,5 +29,19 @@ describe('FileDetailPanel', () => {
     expect(screen.getByText('2h 5m')).toBeInTheDocument()
     expect(screen.getByText('Miniatures')).toBeInTheDocument()
     expect(screen.getByText('Resin')).toBeInTheDocument()
+  })
+
+  it('resets the thumbnail-failed state when a new file is selected', () => {
+    const fileA: ModelFile = { ...file, id: 1, name: 'A.stl', thumbnailPath: '/thumbs/a.png' }
+    const fileB: ModelFile = { ...file, id: 2, name: 'B.stl', thumbnailPath: '/thumbs/b.png' }
+
+    const { rerender } = render(<FileDetailPanel file={fileA} folders={folders} tags={tags} />)
+    expect(screen.getByRole('img')).toBeInTheDocument()
+
+    fireEvent.error(screen.getByRole('img'))
+    expect(screen.getByText(/PREVIEW/)).toBeInTheDocument()
+
+    rerender(<FileDetailPanel file={fileB} folders={folders} tags={tags} />)
+    expect(screen.getByRole('img')).toBeInTheDocument()
   })
 })

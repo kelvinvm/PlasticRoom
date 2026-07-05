@@ -81,8 +81,19 @@ export function ModelViewer({
         window.removeEventListener('resize', onResize)
         cancelAnimationFrame(frameRef.current)
         controls.dispose()
-        renderer.dispose()
         scene.remove(model.object)
+        model.object.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            child.geometry?.dispose?.()
+            if (Array.isArray(child.material)) {
+              child.material.forEach((m) => m.dispose())
+            } else {
+              child.material?.dispose?.()
+            }
+          }
+        })
+        renderer.forceContextLoss()
+        renderer.dispose()
         rendererRef.current = null
       }
     } catch {

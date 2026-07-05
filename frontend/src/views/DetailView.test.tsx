@@ -49,4 +49,10 @@ describe('DetailView', () => {
     await waitFor(() => expect(screen.getByText(/couldn't load this model/i)).toBeInTheDocument())
     expect(screen.getByText('SPECS')).toBeInTheDocument()
   })
+
+  it('shows a viewer error when the file metadata itself fails to load', async () => {
+    vi.spyOn(client, 'getFile').mockRejectedValue(new Error('nope'))
+    render(<DetailView fileId={5} fromFolder={null} onBack={() => {}} />)
+    await waitFor(() => expect(screen.getByText(/couldn't load this model/i)).toBeInTheDocument())
+  })
 })

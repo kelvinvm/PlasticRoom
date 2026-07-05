@@ -57,12 +57,15 @@ export function DetailView({
     return () => {
       cancelled = true
     }
-  }, [file])
+    // Only id/name affect the fetched bytes; keying on the whole `file` object
+    // would rebuild the viewer on unrelated metadata updates (e.g. description save).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file?.id, file?.name])
 
   const originName = fromFolder?.name ?? 'Library'
 
   let viewerBody
-  if (modelError) {
+  if (modelError || error) {
     viewerBody = (
       <div className={styles.viewerStatus}>
         <div className={styles.statusTitle}>Couldn't load this model</div>

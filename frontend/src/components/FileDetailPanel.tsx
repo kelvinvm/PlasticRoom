@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Folder, ModelFile, Tag } from '../api/types'
 import { fileThumbnailUrl } from '../api/client'
 import { formatBytes, formatDimensions, formatPrintTime, tagColor } from '../lib/format'
@@ -18,6 +18,10 @@ interface Row {
 
 export function FileDetailPanel({ file, folders, tags }: FileDetailPanelProps) {
   const [thumbFailed, setThumbFailed] = useState(false)
+
+  useEffect(() => {
+    setThumbFailed(false)
+  }, [file?.id])
 
   if (file === null) {
     return (
