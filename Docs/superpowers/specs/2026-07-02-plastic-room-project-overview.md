@@ -1,7 +1,7 @@
 # PlasticRoom — Project Overview
 
-**Last updated:** 2026-07-02  
-**Status:** Brainstorming complete, Phase 1 not yet started  
+**Last updated:** 2026-07-05  
+**Status:** Phases 1–7 complete and merged to master; Phase 8 (Folder Management) remaining  
 **Design reference:** `Docs/design_handoff_3d_print_organizer/README.md` + `design_reference.dc.html`
 
 ---
@@ -89,8 +89,8 @@ Deliverables:
 - `GET /api/health` endpoint returning `{ status: "ok" }`
 - Frontend fetches health endpoint on load and displays the response (smoke test)
 
-**Status:** Not started  
-**Spec:** *(to be written when Phase 1 begins)*
+**Status:** Complete and merged to master (2026-07-03)
+**Spec:** [Phase 1 — Scaffolding & Docker](2026-07-02-phase-1-scaffolding.md)
 
 ---
 
