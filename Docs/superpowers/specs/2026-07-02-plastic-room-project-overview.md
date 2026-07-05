@@ -155,8 +155,9 @@ Deliverables:
 - Filmstrip of plate thumbnails for multi-plate 3MF; hidden for STL files
 - Right panel: metadata display, editable description textarea, folder/collection chips + add affordance
 
-**Status:** Design approved, ready for planning (2026-07-04)  
-**Spec:** [Phase 5 — File Detail View](2026-07-04-phase-5-file-detail-view.md)
+**Status:** Complete and merged to master (2026-07-04)  
+**Spec:** [Phase 5 — File Detail View](2026-07-04-phase-5-file-detail-view.md)  
+**Plan:** [Phase 5 implementation plan](../plans/2026-07-04-phase-5-file-detail-view.md)
 
 ---
 
