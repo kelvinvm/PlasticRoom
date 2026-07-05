@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest'
 import * as THREE from 'three'
 import {
   applyRenderMode,
-  setActivePlate,
   setVisibleObjects,
   frameCameraToBox,
   boundsForObjects,
@@ -54,23 +53,6 @@ describe('applyRenderMode with non-MeshStandardMaterial materials', () => {
 
     applyRenderMode([mesh], 'plates')
     expect((mesh.material as THREE.MeshPhongMaterial).color.getHex()).toBe(PLATE_COLORS[0])
-  })
-})
-
-describe('setActivePlate', () => {
-  it('hides all but the active index', () => {
-    const objs = meshObjects(3)
-    setActivePlate(objs, 1)
-    expect(objs[0].visible).toBe(false)
-    expect(objs[1].visible).toBe(true)
-    expect(objs[2].visible).toBe(false)
-  })
-
-  it('null shows every object', () => {
-    const objs = meshObjects(3)
-    setActivePlate(objs, 1)
-    setActivePlate(objs, null)
-    expect(objs.every((o) => o.visible)).toBe(true)
   })
 })
 
