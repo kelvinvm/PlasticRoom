@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createTag, getFiles, getFolders, plateThumbnailUrl, uploadFile, uploadThumbnail } from './client'
+import { createFolder, createTag, getFiles, getFolders, plateThumbnailUrl, setFileFolders, uploadFile, uploadThumbnail } from './client'
 
 describe('api client', () => {
   beforeEach(() => {
@@ -90,6 +90,40 @@ describe('upload + tag mutations', () => {
     ;(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: false, status: 400 } as Response)
     const file = new File([new Uint8Array([1])], 'a.stl')
     await expect(uploadFile({ file, folderIds: [], tagIds: [] })).rejects.toThrow()
+  })
+})
+
+describe('folder mutations', () => {
+  beforeEach(() => vi.stubGlobal('fetch', vi.fn()))
+  afterEach(() => vi.unstubAllGlobals())
+
+  const okJson = (value: unknown) =>
+    ({ ok: true, json: () => Promise.resolve(value) }) as Response
+
+  it('setFileFolders PUTs the id list as JSON', async () => {
+    const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>
+    fetchMock.mockResolvedValue(okJson({ id: 7 }))
+
+    await setFileFolders(7, [3, 5])
+
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/files/7/folders')
+    expect(init.method).toBe('PUT')
+    expect(init.headers['Content-Type']).toBe('application/json')
+    expect(JSON.parse(init.body)).toEqual({ ids: [3, 5] })
+  })
+
+  it('createFolder POSTs name + parentId as JSON', async () => {
+    const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>
+    fetchMock.mockResolvedValue(okJson({ id: 9, name: 'Dragons', parentId: null }))
+
+    const folder = await createFolder('Dragons', null)
+
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/folders')
+    expect(init.method).toBe('POST')
+    expect(JSON.parse(init.body)).toEqual({ name: 'Dragons', parentId: null })
+    expect(folder.id).toBe(9)
   })
 })
 

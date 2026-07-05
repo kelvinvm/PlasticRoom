@@ -3,6 +3,7 @@ import type { Folder, ModelFile, Tag } from '../../api/types'
 import { formatBytes, formatDimensions, formatPrintTime, tagColor } from '../../lib/format'
 import { updateFileDescription } from '../../api/client'
 import { typeLabel } from '../FileGrid'
+import { AssignFoldersModal } from '../AssignFoldersModal'
 import styles from './DetailInfoPanel.module.css'
 
 interface Row {
@@ -15,15 +16,20 @@ export function DetailInfoPanel({
   folders,
   tags,
   onDescriptionSaved,
+  onAssignmentsSaved,
+  onFolderCreated,
 }: {
   file: ModelFile
   folders: Folder[]
   tags: Tag[]
   onDescriptionSaved: (updated: ModelFile) => void
+  onAssignmentsSaved: () => void
+  onFolderCreated: () => void
 }) {
   const [description, setDescription] = useState(file.description ?? '')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(false)
+  const [assignOpen, setAssignOpen] = useState(false)
 
   // Re-sync when navigating to a different file.
   // Intentionally depends on file.id only: local `description` state owns the
@@ -127,11 +133,21 @@ export function DetailInfoPanel({
               {tag.name}
             </span>
           ))}
-          <button type="button" className={styles.addPill} disabled title="Coming in Phase 6">
+          <button type="button" className={styles.addPill} onClick={() => setAssignOpen(true)}>
             + add
           </button>
         </div>
       </section>
+
+      {assignOpen && (
+        <AssignFoldersModal
+          file={file}
+          folders={folders}
+          onClose={() => setAssignOpen(false)}
+          onSaved={() => onAssignmentsSaved()}
+          onFolderCreated={() => onFolderCreated()}
+        />
+      )}
     </aside>
   )
 }

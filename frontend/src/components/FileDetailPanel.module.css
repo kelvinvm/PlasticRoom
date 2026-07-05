@@ -110,3 +110,13 @@
   border-radius: var(--radius-chip);
   color: var(--text-secondary);
 }
+
+.addPill {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-chip, 6px);
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 8px;
+}

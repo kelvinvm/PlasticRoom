@@ -24,7 +24,7 @@ export function DetailView({
   onBack: () => void
 }) {
   const { file, loading, error, reload } = useFile(fileId)
-  const { folders } = useFolders()
+  const { folders, reload: reloadFolders } = useFolders()
   const { tags } = useTags()
 
   const [model, setModel] = useState<LoadedModel | null>(null)
@@ -133,6 +133,8 @@ export function DetailView({
           folders={folders}
           tags={tags}
           onDescriptionSaved={() => reload()}
+          onAssignmentsSaved={() => reload()}
+          onFolderCreated={() => reloadFolders()}
         />
       )}
     </div>

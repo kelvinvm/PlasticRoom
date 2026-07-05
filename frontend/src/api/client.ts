@@ -87,3 +87,22 @@ export async function updateFileDescription(id: number, description: string): Pr
   })
   return parseJsonOrThrow<ModelFile>(res, url)
 }
+
+export async function setFileFolders(id: number, folderIds: number[]): Promise<ModelFile> {
+  const url = `/api/files/${id}/folders`
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids: folderIds }),
+  })
+  return parseJsonOrThrow<ModelFile>(res, url)
+}
+
+export async function createFolder(name: string, parentId: number | null): Promise<Folder> {
+  const res = await fetch('/api/folders', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, parentId }),
+  })
+  return parseJsonOrThrow<Folder>(res, '/api/folders')
+}

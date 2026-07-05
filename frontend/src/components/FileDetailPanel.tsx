@@ -3,12 +3,15 @@ import type { Folder, ModelFile, Tag } from '../api/types'
 import { fileThumbnailUrl } from '../api/client'
 import { formatBytes, formatDimensions, formatPrintTime, tagColor } from '../lib/format'
 import { typeLabel } from './FileGrid'
+import { AssignFoldersModal } from './AssignFoldersModal'
 import styles from './FileDetailPanel.module.css'
 
 interface FileDetailPanelProps {
   file: ModelFile | null
   folders: Folder[]
   tags: Tag[]
+  onAssignmentsSaved: () => void
+  onFolderCreated: () => void
 }
 
 interface Row {
@@ -16,8 +19,9 @@ interface Row {
   value: string
 }
 
-export function FileDetailPanel({ file, folders, tags }: FileDetailPanelProps) {
+export function FileDetailPanel({ file, folders, tags, onAssignmentsSaved, onFolderCreated }: FileDetailPanelProps) {
   const [thumbFailed, setThumbFailed] = useState(false)
+  const [assignOpen, setAssignOpen] = useState(false)
 
   useEffect(() => {
     setThumbFailed(false)
@@ -84,18 +88,19 @@ export function FileDetailPanel({ file, folders, tags }: FileDetailPanelProps) {
         </a>
       )}
 
-      {fileFolders.length > 0 && (
-        <div className={styles.chipGroup}>
-          <div className={styles.chipLabel}>Folders</div>
-          <div className={styles.chips}>
-            {fileFolders.map((folder) => (
-              <span key={folder.id} className={styles.chip}>
-                {folder.name}
-              </span>
-            ))}
-          </div>
+      <div className={styles.chipGroup}>
+        <div className={styles.chipLabel}>Folders</div>
+        <div className={styles.chips}>
+          {fileFolders.map((folder) => (
+            <span key={folder.id} className={styles.chip}>
+              {folder.name}
+            </span>
+          ))}
+          <button type="button" className={styles.addPill} onClick={() => setAssignOpen(true)}>
+            + add
+          </button>
         </div>
-      )}
+      </div>
 
       {fileTags.length > 0 && (
         <div className={styles.chipGroup}>
@@ -112,6 +117,16 @@ export function FileDetailPanel({ file, folders, tags }: FileDetailPanelProps) {
             ))}
           </div>
         </div>
+      )}
+
+      {assignOpen && (
+        <AssignFoldersModal
+          file={file}
+          folders={folders}
+          onClose={() => setAssignOpen(false)}
+          onSaved={() => onAssignmentsSaved()}
+          onFolderCreated={() => onFolderCreated()}
+        />
       )}
     </aside>
   )

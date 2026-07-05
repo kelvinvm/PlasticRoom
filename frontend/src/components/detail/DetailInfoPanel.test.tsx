@@ -15,7 +15,16 @@ describe('DetailInfoPanel', () => {
   beforeEach(() => vi.restoreAllMocks())
 
   it('renders spec rows including plate count', () => {
-    render(<DetailInfoPanel file={file} folders={[]} tags={[]} onDescriptionSaved={() => {}} />)
+    render(
+      <DetailInfoPanel
+        file={file}
+        folders={[]}
+        tags={[]}
+        onDescriptionSaved={() => {}}
+        onAssignmentsSaved={() => {}}
+        onFolderCreated={() => {}}
+      />,
+    )
     expect(screen.getByText('Dimensions')).toBeInTheDocument()
     expect(screen.getByText('10 × 20 × 30 mm')).toBeInTheDocument()
     expect(screen.getByText('Plates')).toBeInTheDocument()
@@ -25,7 +34,16 @@ describe('DetailInfoPanel', () => {
     const updated = { ...file, description: 'edited' }
     const spy = vi.spyOn(client, 'updateFileDescription').mockResolvedValue(updated)
     const onSaved = vi.fn()
-    render(<DetailInfoPanel file={file} folders={[]} tags={[]} onDescriptionSaved={onSaved} />)
+    render(
+      <DetailInfoPanel
+        file={file}
+        folders={[]}
+        tags={[]}
+        onDescriptionSaved={onSaved}
+        onAssignmentsSaved={() => {}}
+        onFolderCreated={() => {}}
+      />,
+    )
     const box = screen.getByLabelText('Description')
     fireEvent.change(box, { target: { value: 'edited' } })
     fireEvent.blur(box)
@@ -35,20 +53,48 @@ describe('DetailInfoPanel', () => {
 
   it('does not save on blur when the description is unchanged', () => {
     const spy = vi.spyOn(client, 'updateFileDescription')
-    render(<DetailInfoPanel file={file} folders={[]} tags={[]} onDescriptionSaved={() => {}} />)
+    render(
+      <DetailInfoPanel
+        file={file}
+        folders={[]}
+        tags={[]}
+        onDescriptionSaved={() => {}}
+        onAssignmentsSaved={() => {}}
+        onFolderCreated={() => {}}
+      />,
+    )
     fireEvent.blur(screen.getByLabelText('Description'))
     expect(spy).not.toHaveBeenCalled()
   })
 
-  it('shows a disabled add-to-folder placeholder', () => {
-    render(<DetailInfoPanel file={file} folders={[]} tags={[]} onDescriptionSaved={() => {}} />)
-    expect(screen.getByRole('button', { name: '+ add' })).toBeDisabled()
+  it('opens the assign-folders modal from the + add pill', () => {
+    render(
+      <DetailInfoPanel
+        file={file}
+        folders={[]}
+        tags={[]}
+        onDescriptionSaved={() => {}}
+        onAssignmentsSaved={() => {}}
+        onFolderCreated={() => {}}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '+ add' }))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
   it('shows an error hint when saving the description fails', async () => {
     const spy = vi.spyOn(client, 'updateFileDescription').mockRejectedValue(new Error('boom'))
     const onSaved = vi.fn()
-    render(<DetailInfoPanel file={file} folders={[]} tags={[]} onDescriptionSaved={onSaved} />)
+    render(
+      <DetailInfoPanel
+        file={file}
+        folders={[]}
+        tags={[]}
+        onDescriptionSaved={onSaved}
+        onAssignmentsSaved={() => {}}
+        onFolderCreated={() => {}}
+      />,
+    )
     const box = screen.getByLabelText('Description')
     fireEvent.change(box, { target: { value: 'edited' } })
     fireEvent.blur(box)
@@ -60,7 +106,14 @@ describe('DetailInfoPanel', () => {
   it('clears a stale save error when navigating to a different file', async () => {
     vi.spyOn(client, 'updateFileDescription').mockRejectedValue(new Error('boom'))
     const { rerender } = render(
-      <DetailInfoPanel file={file} folders={[]} tags={[]} onDescriptionSaved={() => {}} />,
+      <DetailInfoPanel
+        file={file}
+        folders={[]}
+        tags={[]}
+        onDescriptionSaved={() => {}}
+        onAssignmentsSaved={() => {}}
+        onFolderCreated={() => {}}
+      />,
     )
     const box = screen.getByLabelText('Description')
     fireEvent.change(box, { target: { value: 'edited' } })
@@ -69,7 +122,16 @@ describe('DetailInfoPanel', () => {
 
     // Navigate to a different file (different id).
     const other = { ...file, id: file.id + 1, description: 'other' }
-    rerender(<DetailInfoPanel file={other} folders={[]} tags={[]} onDescriptionSaved={() => {}} />)
+    rerender(
+      <DetailInfoPanel
+        file={other}
+        folders={[]}
+        tags={[]}
+        onDescriptionSaved={() => {}}
+        onAssignmentsSaved={() => {}}
+        onFolderCreated={() => {}}
+      />,
+    )
 
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })

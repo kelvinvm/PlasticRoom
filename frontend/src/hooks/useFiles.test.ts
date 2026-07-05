@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react'
+import { renderHook, waitFor, act } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useFiles } from './useFiles'
 import * as client from '../api/client'
@@ -37,5 +37,15 @@ describe('useFiles', () => {
     vi.spyOn(client, 'getFiles').mockRejectedValue(new Error('boom'))
     const { result } = renderHook(() => useFiles(null, ''))
     await waitFor(() => expect(result.current.error).toBe(true))
+  })
+
+  it('refetches files when reload is called', async () => {
+    const spy = vi.spyOn(client, 'getFiles').mockResolvedValue([])
+    const { result } = renderHook(() => useFiles(null, ''))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(spy).toHaveBeenCalledTimes(1)
+
+    act(() => result.current.reload())
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(2))
   })
 })
