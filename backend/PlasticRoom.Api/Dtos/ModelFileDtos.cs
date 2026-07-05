@@ -49,3 +49,5 @@ public record UpdateFileRequest(
     string? Creator);
 
 public record IdListRequest(List<int> Ids);
+
+public record BatchAssignRequest(List<int> FileIds, List<int> AddFolderIds, List<int> AddTagIds);

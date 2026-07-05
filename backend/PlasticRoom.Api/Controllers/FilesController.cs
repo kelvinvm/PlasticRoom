@@ -488,6 +488,70 @@ public class FilesController : ControllerBase
         return Ok(ToDto(file));
     }
 
+    [HttpPost("batch/assign")]
+    public IActionResult BatchAssign([FromBody] BatchAssignRequest request)
+    {
+        if (request.AddFolderIds.Count == 0 && request.AddTagIds.Count == 0)
+        {
+            return BadRequest(new { error = "No folders or tags to assign" });
+        }
+
+        using var session = _sessionFactory.CreateSession();
+
+        // Validate every id up front — nothing is persisted until all resolve.
+        var files = new List<ModelFile>();
+        foreach (var fileId in request.FileIds)
+        {
+            var file = session.GetObjectByKey<ModelFile>(fileId);
+            if (file is null)
+            {
+                return NotFound(new { error = $"File {fileId} not found" });
+            }
+            files.Add(file);
+        }
+
+        var folders = new List<Folder>();
+        foreach (var folderId in request.AddFolderIds)
+        {
+            var folder = session.GetObjectByKey<Folder>(folderId);
+            if (folder is null)
+            {
+                return NotFound(new { error = $"Folder {folderId} not found" });
+            }
+            folders.Add(folder);
+        }
+
+        var tags = new List<Tag>();
+        foreach (var tagId in request.AddTagIds)
+        {
+            var tag = session.GetObjectByKey<Tag>(tagId);
+            if (tag is null)
+            {
+                return NotFound(new { error = $"Tag {tagId} not found" });
+            }
+            tags.Add(tag);
+        }
+
+        session.BeginTransaction();
+        foreach (var file in files)
+        {
+            var existingFolderIds = file.FileFolders.Select(ff => ff.Folder.Oid).ToHashSet();
+            foreach (var folder in folders.Where(f => !existingFolderIds.Contains(f.Oid)))
+            {
+                new FileFolder(session) { File = file, Folder = folder }.Save();
+            }
+
+            var existingTagIds = file.FileTags.Select(ft => ft.Tag.Oid).ToHashSet();
+            foreach (var tag in tags.Where(t => !existingTagIds.Contains(t.Oid)))
+            {
+                new FileTag(session) { File = file, Tag = tag }.Save();
+            }
+        }
+        session.CommitTransaction();
+
+        return Ok(files.Select(ToDto).ToList());
+    }
+
     private static IReadOnlyList<PlateInfo> ParseBambuPlates(string storagePath)
     {
         try
