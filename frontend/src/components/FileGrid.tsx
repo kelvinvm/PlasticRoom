@@ -7,6 +7,7 @@ interface FileGridProps {
   tags: Tag[]
   selectedFileId: number | null
   onSelectFile: (id: number) => void
+  onOpenFile: (id: number) => void
 }
 
 export function typeLabel(type: ModelFile['type']): string {
@@ -18,9 +19,10 @@ interface CardProps {
   tags: Tag[]
   selected: boolean
   onSelect: (id: number) => void
+  onOpen: (id: number) => void
 }
 
-function FileCard({ file, tags, selected, onSelect }: CardProps) {
+function FileCard({ file, tags, selected, onSelect, onOpen }: CardProps) {
   const fileTags = file.tagIds
     .map((id) => tags.find((t) => t.id === id))
     .filter((t): t is Tag => t !== undefined)
@@ -31,6 +33,7 @@ function FileCard({ file, tags, selected, onSelect }: CardProps) {
       className={`${styles.card} ${selected ? styles.cardSelected : ''}`}
       aria-current={selected ? 'true' : undefined}
       onClick={() => onSelect(file.id)}
+      onDoubleClick={() => onOpen(file.id)}
     >
       <div className={styles.thumb}>
         <span className={styles.thumbLabel}>{typeLabel(file.type)} PREVIEW</span>
@@ -54,7 +57,7 @@ function FileCard({ file, tags, selected, onSelect }: CardProps) {
   )
 }
 
-export function FileGrid({ files, tags, selectedFileId, onSelectFile }: FileGridProps) {
+export function FileGrid({ files, tags, selectedFileId, onSelectFile, onOpenFile }: FileGridProps) {
   return (
     <div className={styles.grid}>
       {files.map((file) => (
@@ -64,6 +67,7 @@ export function FileGrid({ files, tags, selectedFileId, onSelectFile }: FileGrid
           tags={tags}
           selected={file.id === selectedFileId}
           onSelect={onSelectFile}
+          onOpen={onOpenFile}
         />
       ))}
     </div>

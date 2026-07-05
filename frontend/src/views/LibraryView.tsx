@@ -9,7 +9,13 @@ import { useFiles } from '../hooks/useFiles'
 import { useDebouncedValue } from '../hooks/useDebouncedValue'
 import styles from './LibraryView.module.css'
 
-export function LibraryView({ onImport }: { onImport: () => void }) {
+export function LibraryView({
+  onImport,
+  onOpenFile,
+}: {
+  onImport: () => void
+  onOpenFile: (fileId: number, fromFolder: { id: number; name: string } | null) => void
+}) {
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null)
   const [selectedFileId, setSelectedFileId] = useState<number | null>(null)
   const [search, setSearch] = useState('')
@@ -25,6 +31,14 @@ export function LibraryView({ onImport }: { onImport: () => void }) {
       : (folders.find((f) => f.id === selectedFolderId)?.name ?? 'Folder')
   const selectedFile = files.find((f) => f.id === selectedFileId) ?? null
 
+  const activeFolder =
+    selectedFolderId === null
+      ? null
+      : (() => {
+          const f = folders.find((x) => x.id === selectedFolderId)
+          return f ? { id: f.id, name: f.name } : null
+        })()
+
   let center
   if (loading) {
     center = <div className={styles.status}>Loading…</div>
@@ -38,7 +52,13 @@ export function LibraryView({ onImport }: { onImport: () => void }) {
     )
   } else {
     center = (
-      <FileGrid files={files} tags={tags} selectedFileId={selectedFileId} onSelectFile={setSelectedFileId} />
+      <FileGrid
+        files={files}
+        tags={tags}
+        selectedFileId={selectedFileId}
+        onSelectFile={setSelectedFileId}
+        onOpenFile={(id) => onOpenFile(id, activeFolder)}
+      />
     )
   }
 
