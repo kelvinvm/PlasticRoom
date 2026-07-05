@@ -2,13 +2,14 @@ import { useState } from 'react'
 import type { ModelFile, Tag } from '../api/types'
 import { fileThumbnailUrl } from '../api/client'
 import { tagColor } from '../lib/format'
+import type { SelectModifiers } from '../lib/gridSelection'
 import styles from './FileGrid.module.css'
 
 interface FileGridProps {
   files: ModelFile[]
   tags: Tag[]
-  selectedFileId: number | null
-  onSelectFile: (id: number) => void
+  selectedFileIds: ReadonlySet<number>
+  onSelectFile: (id: number, mods: SelectModifiers) => void
   onOpenFile: (id: number) => void
 }
 
@@ -20,11 +21,12 @@ interface CardProps {
   file: ModelFile
   tags: Tag[]
   selected: boolean
-  onSelect: (id: number) => void
+  multiActive: boolean
+  onSelect: (id: number, mods: SelectModifiers) => void
   onOpen: (id: number) => void
 }
 
-function FileCard({ file, tags, selected, onSelect, onOpen }: CardProps) {
+function FileCard({ file, tags, selected, multiActive, onSelect, onOpen }: CardProps) {
   const [thumbFailed, setThumbFailed] = useState(false)
   const fileTags = file.tagIds
     .map((id) => tags.find((t) => t.id === id))
@@ -35,11 +37,20 @@ function FileCard({ file, tags, selected, onSelect, onOpen }: CardProps) {
   return (
     <button
       type="button"
-      className={`${styles.card} ${selected ? styles.cardSelected : ''}`}
+      className={`${styles.card} ${selected ? styles.cardSelected : ''} ${
+        multiActive && !selected ? styles.cardDimmed : ''
+      }`}
       aria-current={selected ? 'true' : undefined}
-      onClick={() => onSelect(file.id)}
+      onClick={(e) =>
+        onSelect(file.id, { metaKey: e.metaKey, ctrlKey: e.ctrlKey, shiftKey: e.shiftKey })
+      }
       onDoubleClick={() => onOpen(file.id)}
     >
+      {selected && multiActive && (
+        <span className={styles.selectBadge} data-testid="select-badge" aria-hidden="true">
+          ✓
+        </span>
+      )}
       <div className={styles.thumb}>
         {showImg ? (
           <img
@@ -71,7 +82,8 @@ function FileCard({ file, tags, selected, onSelect, onOpen }: CardProps) {
   )
 }
 
-export function FileGrid({ files, tags, selectedFileId, onSelectFile, onOpenFile }: FileGridProps) {
+export function FileGrid({ files, tags, selectedFileIds, onSelectFile, onOpenFile }: FileGridProps) {
+  const multiActive = selectedFileIds.size >= 2
   return (
     <div className={styles.grid}>
       {files.map((file) => (
@@ -79,7 +91,8 @@ export function FileGrid({ files, tags, selectedFileId, onSelectFile, onOpenFile
           key={file.id}
           file={file}
           tags={tags}
-          selected={file.id === selectedFileId}
+          selected={selectedFileIds.has(file.id)}
+          multiActive={multiActive}
           onSelect={onSelectFile}
           onOpen={onOpenFile}
         />
