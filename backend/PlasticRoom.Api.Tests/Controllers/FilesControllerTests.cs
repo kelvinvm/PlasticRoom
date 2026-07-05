@@ -503,6 +503,19 @@ public class FilesControllerTests : IDisposable
         Assert.IsType<NotFoundObjectResult>(_controller.GetPlateThumbnail(999999, 1));
     }
 
+    [Fact]
+    public async System.Threading.Tasks.Task Delete_RemovesPlatesAndPngs()
+    {
+        var dto = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            await _controller.Upload(new UploadFileRequest { File = BuildBambuThreeMfFormFile("shelf.3mf") })).Value!;
+        Assert.Equal(2, Directory.GetFiles(_fileStorage.ThumbsDirectory, "*_plate_*.png").Length);
+
+        _controller.Delete(dto.Id);
+
+        Assert.Empty(Directory.GetFiles(_fileStorage.ThumbsDirectory, "*_plate_*.png"));
+        Assert.IsType<NotFoundObjectResult>(_controller.GetById(dto.Id));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_tempDataDir))

@@ -357,6 +357,16 @@ public class FilesController : ControllerBase
             fileTag.Delete();
         }
 
+        var plateThumbPaths = file.Plates
+            .Select(p => p.ThumbnailPath)
+            .Where(p => !string.IsNullOrEmpty(p))
+            .ToList();
+
+        foreach (var plate in file.Plates.ToList())
+        {
+            plate.Delete();
+        }
+
         var storagePath = file.StoragePath;
         var thumbnailPath = file.ThumbnailPath;
 
@@ -371,6 +381,11 @@ public class FilesController : ControllerBase
         if (thumbnailPath is not null && System.IO.File.Exists(thumbnailPath))
         {
             System.IO.File.Delete(thumbnailPath);
+        }
+
+        foreach (var platePath in plateThumbPaths)
+        {
+            if (System.IO.File.Exists(platePath)) System.IO.File.Delete(platePath!);
         }
 
         return NoContent();
