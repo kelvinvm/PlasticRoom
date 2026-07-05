@@ -1,0 +1,146 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.dialog {
+  width: 760px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.thumb,
+.thumbPlaceholder {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex: 0 0 auto;
+}
+
+.thumbPlaceholder {
+  background: var(--thumb-placeholder);
+}
+
+.title {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.body {
+  padding: 12px 16px;
+  overflow-y: auto;
+}
+
+.groupLabel {
+  margin: 12px 0 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+}
+
+.chevron {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.chevronSpacer {
+  width: 18px;
+  flex: 0 0 auto;
+}
+
+.checkbox {
+  accent-color: var(--accent);
+  width: 15px;
+  height: 15px;
+}
+
+.rowLabel {
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.error {
+  padding: 6px 16px;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.newFolder {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.newFolderInput {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  padding: 4px 8px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.textButton {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.primary {
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  color: #1b1b1b;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 6px 14px;
+}
