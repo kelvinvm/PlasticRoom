@@ -8,7 +8,7 @@ const file: ModelFile = {
   id: 5, name: 'dragon.3mf', type: 'ThreeMf', sizeBytes: 2048, addedAt: '2026-07-04T00:00:00Z',
   dimXMm: 10, dimYMm: 20, dimZMm: 30, plateCount: 2, estPrintTimeMin: 90, material: 'PLA',
   layerHeightMm: 0.2, sourceUrl: null, creator: null, description: 'orig', thumbnailPath: 't',
-  folderIds: [], tagIds: [],
+  folderIds: [], tagIds: [], plates: [],
 }
 
 describe('DetailInfoPanel', () => {

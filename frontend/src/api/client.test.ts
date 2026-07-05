@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createTag, getFiles, getFolders, uploadFile, uploadThumbnail } from './client'
+import { createTag, getFiles, getFolders, plateThumbnailUrl, uploadFile, uploadThumbnail } from './client'
 
 describe('api client', () => {
   beforeEach(() => {
@@ -90,5 +90,11 @@ describe('upload + tag mutations', () => {
     ;(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: false, status: 400 } as Response)
     const file = new File([new Uint8Array([1])], 'a.stl')
     await expect(uploadFile({ file, folderIds: [], tagIds: [] })).rejects.toThrow()
+  })
+})
+
+describe('plateThumbnailUrl', () => {
+  it('builds the plate thumbnail path', () => {
+    expect(plateThumbnailUrl(7, 3)).toBe('/api/files/7/plates/3/thumbnail')
   })
 })

@@ -74,6 +74,10 @@ export function fileThumbnailUrl(id: number): string {
   return `/api/files/${id}/thumbnail`
 }
 
+export function plateThumbnailUrl(id: number, index: number): string {
+  return `/api/files/${id}/plates/${index}/thumbnail`
+}
+
 export async function updateFileDescription(id: number, description: string): Promise<ModelFile> {
   const url = `/api/files/${id}`
   const res = await fetch(url, {

@@ -8,7 +8,7 @@ const sampleFile: ModelFile = {
   id: 1, name: 'a.stl', type: 'Stl', sizeBytes: 10, addedAt: '2026-01-01T00:00:00Z',
   dimXMm: 1, dimYMm: 1, dimZMm: 1, plateCount: null, estPrintTimeMin: null,
   material: null, layerHeightMm: null, sourceUrl: null, creator: null,
-  description: null, thumbnailPath: null, folderIds: [], tagIds: [],
+  description: null, thumbnailPath: null, folderIds: [], tagIds: [], plates: [],
 }
 
 describe('useFiles', () => {

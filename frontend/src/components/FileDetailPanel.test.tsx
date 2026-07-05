@@ -12,7 +12,7 @@ const file: ModelFile = {
   id: 9, name: 'Dragon.stl', type: 'Stl', sizeBytes: 5_242_880, addedAt: '2026-01-01T00:00:00Z',
   dimXMm: 42, dimYMm: 28, dimZMm: 15, plateCount: null, estPrintTimeMin: 125,
   material: 'PLA', layerHeightMm: 0.2, sourceUrl: null, creator: 'Jane',
-  description: 'A dragon', thumbnailPath: null, folderIds: [1], tagIds: [1],
+  description: 'A dragon', thumbnailPath: null, folderIds: [1], tagIds: [1], plates: [],
 }
 
 describe('FileDetailPanel', () => {
