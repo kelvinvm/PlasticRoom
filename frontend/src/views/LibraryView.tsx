@@ -21,9 +21,9 @@ export function LibraryView({
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebouncedValue(search, 250)
 
-  const { folders } = useFolders()
+  const { folders, reload: reloadFolders } = useFolders()
   const { tags } = useTags()
-  const { files, loading, error } = useFiles(selectedFolderId, debouncedSearch)
+  const { files, loading, error, reload: reloadFiles } = useFiles(selectedFolderId, debouncedSearch)
 
   const title =
     selectedFolderId === null
@@ -74,7 +74,13 @@ export function LibraryView({
         <LibraryToolbar title={title} fileCount={files.length} search={search} onSearchChange={setSearch} />
         <div className={styles.centerBody}>{center}</div>
       </main>
-      <FileDetailPanel file={selectedFile} folders={folders} tags={tags} />
+      <FileDetailPanel
+        file={selectedFile}
+        folders={folders}
+        tags={tags}
+        onAssignmentsSaved={reloadFiles}
+        onFolderCreated={reloadFolders}
+      />
     </div>
   )
 }

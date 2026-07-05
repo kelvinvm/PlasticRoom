@@ -17,12 +17,28 @@ const file: ModelFile = {
 
 describe('FileDetailPanel', () => {
   it('shows an empty state when no file is selected', () => {
-    render(<FileDetailPanel file={null} folders={folders} tags={tags} />)
+    render(
+      <FileDetailPanel
+        file={null}
+        folders={folders}
+        tags={tags}
+        onAssignmentsSaved={() => {}}
+        onFolderCreated={() => {}}
+      />,
+    )
     expect(screen.getByText('Select a file')).toBeInTheDocument()
   })
 
   it('renders name, formatted metadata, folder chips and tag chips', () => {
-    render(<FileDetailPanel file={file} folders={folders} tags={tags} />)
+    render(
+      <FileDetailPanel
+        file={file}
+        folders={folders}
+        tags={tags}
+        onAssignmentsSaved={() => {}}
+        onFolderCreated={() => {}}
+      />,
+    )
     expect(screen.getByText('Dragon.stl')).toBeInTheDocument()
     expect(screen.getByText('5.0 MB')).toBeInTheDocument()
     expect(screen.getByText('42 × 28 × 15 mm')).toBeInTheDocument()
@@ -31,17 +47,47 @@ describe('FileDetailPanel', () => {
     expect(screen.getByText('Resin')).toBeInTheDocument()
   })
 
+  it('opens the assign-folders modal from the + add pill when a file is selected', () => {
+    render(
+      <FileDetailPanel
+        file={file}
+        folders={folders}
+        tags={tags}
+        onAssignmentsSaved={() => {}}
+        onFolderCreated={() => {}}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '+ add' }))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
   it('resets the thumbnail-failed state when a new file is selected', () => {
     const fileA: ModelFile = { ...file, id: 1, name: 'A.stl', thumbnailPath: '/thumbs/a.png' }
     const fileB: ModelFile = { ...file, id: 2, name: 'B.stl', thumbnailPath: '/thumbs/b.png' }
 
-    const { rerender } = render(<FileDetailPanel file={fileA} folders={folders} tags={tags} />)
+    const { rerender } = render(
+      <FileDetailPanel
+        file={fileA}
+        folders={folders}
+        tags={tags}
+        onAssignmentsSaved={() => {}}
+        onFolderCreated={() => {}}
+      />,
+    )
     expect(screen.getByRole('img')).toBeInTheDocument()
 
     fireEvent.error(screen.getByRole('img'))
     expect(screen.getByText(/PREVIEW/)).toBeInTheDocument()
 
-    rerender(<FileDetailPanel file={fileB} folders={folders} tags={tags} />)
+    rerender(
+      <FileDetailPanel
+        file={fileB}
+        folders={folders}
+        tags={tags}
+        onAssignmentsSaved={() => {}}
+        onFolderCreated={() => {}}
+      />,
+    )
     expect(screen.getByRole('img')).toBeInTheDocument()
   })
 })
