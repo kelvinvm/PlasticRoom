@@ -172,8 +172,8 @@ Deliverables:
 - Working set of folder IDs diffed against current assignments on Save
 - "+ New folder" link in modal footer
 
-**Status:** Not started  
-**Spec:** *(to be written when Phase 6 begins)*
+**Status:** Complete  
+**Spec:** `Docs/superpowers/plans/2026-07-05-phase-6-folder-collection-multi-assign.md`
 
 ---
 
