@@ -22,7 +22,10 @@ public record ModelFileDto(
     string? Description,
     string? ThumbnailPath,
     IReadOnlyList<int> FolderIds,
-    IReadOnlyList<int> TagIds);
+    IReadOnlyList<int> TagIds,
+    IReadOnlyList<PlateDto> Plates);
+
+public record PlateDto(int Index, string Name, IReadOnlyList<int> BuildItemIndices);
 
 public class UploadFileRequest
 {

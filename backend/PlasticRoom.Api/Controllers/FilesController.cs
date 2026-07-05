@@ -233,6 +233,39 @@ public class FilesController : ControllerBase
             }
         }
 
+        var plateInfos = ParseBambuPlates(storagePath);
+        if (plateInfos.Count > 0)
+        {
+            modelFile.PlateCount = plateInfos.Count;
+            modelFile.Save();
+
+            using var plateZip = System.IO.Compression.ZipFile.OpenRead(storagePath);
+            foreach (var info in plateInfos)
+            {
+                string? thumbPath = null;
+                if (!string.IsNullOrEmpty(info.ThumbnailEntryName))
+                {
+                    var entry = plateZip.GetEntry(info.ThumbnailEntryName);
+                    if (entry is not null)
+                    {
+                        thumbPath = Path.Combine(_fileStorage.ThumbsDirectory, $"{modelFile.Oid}_plate_{info.Index}.png");
+                        using var entryStream = entry.Open();
+                        using var dest = System.IO.File.Create(thumbPath);
+                        entryStream.CopyTo(dest);
+                    }
+                }
+
+                new Plate(session)
+                {
+                    File = modelFile,
+                    Index = info.Index,
+                    Name = info.Name,
+                    ThumbnailPath = thumbPath,
+                    BuildItemIndices = string.Join(",", info.BuildItemIndices),
+                }.Save();
+            }
+        }
+
         return CreatedAtAction(nameof(GetById), new { id = modelFile.Oid }, ToDto(modelFile));
     }
 
@@ -421,6 +454,19 @@ public class FilesController : ControllerBase
         return Ok(ToDto(file));
     }
 
+    private static IReadOnlyList<PlateInfo> ParseBambuPlates(string storagePath)
+    {
+        try
+        {
+            using var stream = System.IO.File.OpenRead(storagePath);
+            return BambuPlateParser.Parse(stream);
+        }
+        catch
+        {
+            return System.Array.Empty<PlateInfo>();
+        }
+    }
+
     private static bool TryValidateSourceUrl(string? sourceUrl, out string? error)
     {
         error = null;
@@ -456,5 +502,14 @@ public class FilesController : ControllerBase
         file.Description,
         file.ThumbnailPath,
         file.FileFolders.Select(ff => ff.Folder.Oid).ToList(),
-        file.FileTags.Select(ft => ft.Tag.Oid).ToList());
+        file.FileTags.Select(ft => ft.Tag.Oid).ToList(),
+        file.Plates.OrderBy(p => p.Index).Select(p => new PlateDto(
+            p.Index,
+            p.Name,
+            ParseIndices(p.BuildItemIndices))).ToList());
+
+    private static IReadOnlyList<int> ParseIndices(string csv) =>
+        string.IsNullOrEmpty(csv)
+            ? System.Array.Empty<int>()
+            : csv.Split(',').Select(int.Parse).ToList();
 }
