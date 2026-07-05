@@ -22,7 +22,7 @@ const sampleFile: ModelFile = {
 describe('FileGrid', () => {
   it('renders a card per file with preview label, name, description, and tag pills', () => {
     const files = [file(1, 'Dragon.stl', 'Stl', [1]), file(2, 'Set.3mf', 'ThreeMf', [])]
-    render(<FileGrid files={files} tags={tags} selectedFileId={null} onSelectFile={vi.fn()} onOpenFile={vi.fn()} />)
+    render(<FileGrid files={files} tags={tags} selectedFileIds={new Set()} onSelectFile={vi.fn()} onOpenFile={vi.fn()} />)
     expect(screen.getByText('Dragon.stl')).toBeInTheDocument()
     expect(screen.getByText('Dragon.stl description')).toBeInTheDocument()
     expect(screen.getByText('STL PREVIEW')).toBeInTheDocument()
@@ -30,15 +30,15 @@ describe('FileGrid', () => {
     expect(screen.getByText('Resin')).toBeInTheDocument()
   })
 
-  it('calls onSelectFile when a card is clicked', () => {
+  it('calls onSelectFile with the click modifiers', () => {
     const onSelect = vi.fn()
-    render(<FileGrid files={[file(1, 'Dragon.stl', 'Stl', [])]} tags={tags} selectedFileId={null} onSelectFile={onSelect} onOpenFile={vi.fn()} />)
-    fireEvent.click(screen.getByText('Dragon.stl'))
-    expect(onSelect).toHaveBeenCalledWith(1)
+    render(<FileGrid files={[file(1, 'Dragon.stl', 'Stl', [])]} tags={tags} selectedFileIds={new Set()} onSelectFile={onSelect} onOpenFile={vi.fn()} />)
+    fireEvent.click(screen.getByText('Dragon.stl'), { ctrlKey: true })
+    expect(onSelect).toHaveBeenCalledWith(1, expect.objectContaining({ ctrlKey: true, shiftKey: false }))
   })
 
-  it('marks the selected card with aria-current', () => {
-    render(<FileGrid files={[file(1, 'Dragon.stl', 'Stl', [])]} tags={tags} selectedFileId={1} onSelectFile={vi.fn()} onOpenFile={vi.fn()} />)
+  it('marks selected cards with aria-current', () => {
+    render(<FileGrid files={[file(1, 'Dragon.stl', 'Stl', [])]} tags={tags} selectedFileIds={new Set([1])} onSelectFile={vi.fn()} onOpenFile={vi.fn()} />)
     expect(screen.getByText('Dragon.stl').closest('[aria-current]')).toHaveAttribute('aria-current', 'true')
   })
 
@@ -46,34 +46,30 @@ describe('FileGrid', () => {
     const onSelect = vi.fn()
     const onOpen = vi.fn()
     render(
-      <FileGrid
-        files={[sampleFile]}
-        tags={[]}
-        selectedFileId={null}
-        onSelectFile={onSelect}
-        onOpenFile={onOpen}
-      />,
+      <FileGrid files={[sampleFile]} tags={[]} selectedFileIds={new Set()} onSelectFile={onSelect} onOpenFile={onOpen} />,
     )
     const card = screen.getByRole('button', { name: /widget\.stl/i })
     fireEvent.click(card)
-    expect(onSelect).toHaveBeenCalledWith(sampleFile.id)
+    expect(onSelect).toHaveBeenCalledWith(sampleFile.id, expect.objectContaining({ shiftKey: false }))
     fireEvent.doubleClick(card)
     expect(onOpen).toHaveBeenCalledWith(sampleFile.id)
   })
 
+  it('shows a check badge on selected cards when 2+ are selected', () => {
+    const files = [file(1, 'A.stl', 'Stl', []), file(2, 'B.stl', 'Stl', [])]
+    render(<FileGrid files={files} tags={[]} selectedFileIds={new Set([1, 2])} onSelectFile={vi.fn()} onOpenFile={vi.fn()} />)
+    expect(screen.getAllByTestId('select-badge')).toHaveLength(2)
+  })
+
   it('renders a real thumbnail image when the file has one', () => {
     const withThumb = { ...sampleFile, thumbnailPath: 'thumbs/1.png' }
-    render(
-      <FileGrid files={[withThumb]} tags={[]} selectedFileId={null} onSelectFile={() => {}} onOpenFile={() => {}} />,
-    )
+    render(<FileGrid files={[withThumb]} tags={[]} selectedFileIds={new Set()} onSelectFile={() => {}} onOpenFile={() => {}} />)
     const img = screen.getByRole('img', { name: /widget\.stl/i })
     expect(img).toHaveAttribute('src', '/api/files/1/thumbnail')
   })
 
   it('shows the placeholder label when the file has no thumbnail', () => {
-    render(
-      <FileGrid files={[sampleFile]} tags={[]} selectedFileId={null} onSelectFile={() => {}} onOpenFile={() => {}} />,
-    )
+    render(<FileGrid files={[sampleFile]} tags={[]} selectedFileIds={new Set()} onSelectFile={() => {}} onOpenFile={() => {}} />)
     expect(screen.getByText('STL PREVIEW')).toBeInTheDocument()
   })
 })

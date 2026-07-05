@@ -516,6 +516,77 @@ public class FilesControllerTests : IDisposable
         Assert.IsType<NotFoundObjectResult>(_controller.GetById(dto.Id));
     }
 
+    [Fact]
+    public async System.Threading.Tasks.Task BatchAssign_AddsFoldersAndTags_ToAllFiles_Deduping()
+    {
+        var fileA = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            await _controller.Upload(new UploadFileRequest { File = BuildStlFormFile("a.stl") })).Value!;
+        var fileB = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            await _controller.Upload(new UploadFileRequest { File = BuildStlFormFile("b.stl") })).Value!;
+
+        int folderId, tagId;
+        using (var session = _sessionFactory.CreateSession())
+        {
+            var folder = new PlasticRoom.Api.Entities.Folder(session) { Name = "Terrain" };
+            var tag = new PlasticRoom.Api.Entities.Tag(session) { Name = "Resin" };
+            folder.Save();
+            tag.Save();
+            folderId = folder.Oid;
+            tagId = tag.Oid;
+        }
+
+        // Pre-assign the folder to fileA so we can prove the batch de-dupes.
+        _controller.SetFolders(fileA.Id, new IdListRequest(new List<int> { folderId }));
+
+        var result = _controller.BatchAssign(new BatchAssignRequest(
+            new List<int> { fileA.Id, fileB.Id },
+            new List<int> { folderId },
+            new List<int> { tagId }));
+
+        var dtos = Assert.IsType<List<ModelFileDto>>(Assert.IsType<OkObjectResult>(result).Value);
+        Assert.Equal(2, dtos.Count);
+        Assert.All(dtos, d => Assert.Contains(folderId, d.FolderIds));
+        Assert.All(dtos, d => Assert.Contains(tagId, d.TagIds));
+        // De-dup: fileA still has exactly one folder link, not two.
+        var dtoA = dtos.Single(d => d.Id == fileA.Id);
+        Assert.Single(dtoA.FolderIds);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task BatchAssign_UnknownTagId_RollsBack_NoLinksWritten()
+    {
+        var fileA = (ModelFileDto)Assert.IsType<CreatedAtActionResult>(
+            await _controller.Upload(new UploadFileRequest { File = BuildStlFormFile("a.stl") })).Value!;
+
+        int folderId;
+        using (var session = _sessionFactory.CreateSession())
+        {
+            var folder = new PlasticRoom.Api.Entities.Folder(session) { Name = "Terrain" };
+            folder.Save();
+            folderId = folder.Oid;
+        }
+
+        var result = _controller.BatchAssign(new BatchAssignRequest(
+            new List<int> { fileA.Id },
+            new List<int> { folderId },
+            new List<int> { 999999 })); // nonexistent tag
+
+        Assert.IsType<NotFoundObjectResult>(result);
+
+        // The valid folder must NOT have been written — validation fails before any write.
+        var getResult = _controller.GetById(fileA.Id);
+        var dto = Assert.IsType<ModelFileDto>(Assert.IsType<OkObjectResult>(getResult).Value);
+        Assert.Empty(dto.FolderIds);
+    }
+
+    [Fact]
+    public void BatchAssign_EmptyInputs_ReturnsBadRequest()
+    {
+        var result = _controller.BatchAssign(
+            new BatchAssignRequest(new List<int>(), new List<int>(), new List<int>()));
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_tempDataDir))

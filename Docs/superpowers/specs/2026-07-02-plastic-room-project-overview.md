@@ -187,8 +187,8 @@ Deliverables:
 - Right panel becomes batch action panel: folder search + staged pills, tag search + staged pills
 - "Apply to N" commits staged assignments/tags to all selected files via API
 
-**Status:** Not started  
-**Spec:** *(to be written when Phase 7 begins)*
+**Status:** Complete  
+**Spec:** `Docs/superpowers/specs/2026-07-05-phase-7-batch-tagging.md`
 
 ---
 

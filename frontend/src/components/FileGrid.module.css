@@ -18,6 +18,7 @@
 }
 
 .card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -33,6 +34,26 @@
 
 .cardSelected {
   box-shadow: 0 0 0 2px var(--accent);
+}
+
+.cardDimmed {
+  opacity: 0.5;
+}
+
+.selectBadge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 1;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #1b1b1b;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .thumb {

@@ -106,3 +106,17 @@ export async function createFolder(name: string, parentId: number | null): Promi
   })
   return parseJsonOrThrow<Folder>(res, '/api/folders')
 }
+
+export async function batchAssign(
+  fileIds: number[],
+  addFolderIds: number[],
+  addTagIds: number[],
+): Promise<ModelFile[]> {
+  const url = '/api/files/batch/assign'
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fileIds, addFolderIds, addTagIds }),
+  })
+  return parseJsonOrThrow<ModelFile[]>(res, url)
+}

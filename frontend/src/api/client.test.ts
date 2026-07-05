@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createFolder, createTag, getFiles, getFolders, plateThumbnailUrl, setFileFolders, uploadFile, uploadThumbnail } from './client'
+import { batchAssign, createFolder, createTag, getFiles, getFolders, plateThumbnailUrl, setFileFolders, uploadFile, uploadThumbnail } from './client'
 
 describe('api client', () => {
   beforeEach(() => {
@@ -124,6 +124,28 @@ describe('folder mutations', () => {
     expect(init.method).toBe('POST')
     expect(JSON.parse(init.body)).toEqual({ name: 'Dragons', parentId: null })
     expect(folder.id).toBe(9)
+  })
+})
+
+describe('batch assign', () => {
+  beforeEach(() => vi.stubGlobal('fetch', vi.fn()))
+  afterEach(() => vi.unstubAllGlobals())
+
+  const okJson = (value: unknown) =>
+    ({ ok: true, json: () => Promise.resolve(value) }) as Response
+
+  it('batchAssign POSTs fileIds + add ids as JSON', async () => {
+    const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>
+    fetchMock.mockResolvedValue(okJson([{ id: 1 }, { id: 2 }]))
+
+    const updated = await batchAssign([1, 2], [7], [4])
+
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/files/batch/assign')
+    expect(init.method).toBe('POST')
+    expect(init.headers['Content-Type']).toBe('application/json')
+    expect(JSON.parse(init.body)).toEqual({ fileIds: [1, 2], addFolderIds: [7], addTagIds: [4] })
+    expect(updated).toHaveLength(2)
   })
 })
 
