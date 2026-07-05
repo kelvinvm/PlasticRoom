@@ -60,4 +60,20 @@ describe('FileGrid', () => {
     fireEvent.doubleClick(card)
     expect(onOpen).toHaveBeenCalledWith(sampleFile.id)
   })
+
+  it('renders a real thumbnail image when the file has one', () => {
+    const withThumb = { ...sampleFile, thumbnailPath: 'thumbs/1.png' }
+    render(
+      <FileGrid files={[withThumb]} tags={[]} selectedFileId={null} onSelectFile={() => {}} onOpenFile={() => {}} />,
+    )
+    const img = screen.getByRole('img', { name: /widget\.stl/i })
+    expect(img).toHaveAttribute('src', '/api/files/1/thumbnail')
+  })
+
+  it('shows the placeholder label when the file has no thumbnail', () => {
+    render(
+      <FileGrid files={[sampleFile]} tags={[]} selectedFileId={null} onSelectFile={() => {}} onOpenFile={() => {}} />,
+    )
+    expect(screen.getByText('STL PREVIEW')).toBeInTheDocument()
+  })
 })

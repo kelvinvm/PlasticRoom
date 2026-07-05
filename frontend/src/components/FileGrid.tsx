@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import type { ModelFile, Tag } from '../api/types'
+import { fileThumbnailUrl } from '../api/client'
 import { tagColor } from '../lib/format'
 import styles from './FileGrid.module.css'
 
@@ -23,9 +25,12 @@ interface CardProps {
 }
 
 function FileCard({ file, tags, selected, onSelect, onOpen }: CardProps) {
+  const [thumbFailed, setThumbFailed] = useState(false)
   const fileTags = file.tagIds
     .map((id) => tags.find((t) => t.id === id))
     .filter((t): t is Tag => t !== undefined)
+
+  const showImg = file.thumbnailPath !== null && !thumbFailed
 
   return (
     <button
@@ -36,7 +41,16 @@ function FileCard({ file, tags, selected, onSelect, onOpen }: CardProps) {
       onDoubleClick={() => onOpen(file.id)}
     >
       <div className={styles.thumb}>
-        <span className={styles.thumbLabel}>{typeLabel(file.type)} PREVIEW</span>
+        {showImg ? (
+          <img
+            className={styles.thumbImg}
+            src={fileThumbnailUrl(file.id)}
+            alt={`${file.name} preview`}
+            onError={() => setThumbFailed(true)}
+          />
+        ) : (
+          <span className={styles.thumbLabel}>{typeLabel(file.type)} PREVIEW</span>
+        )}
       </div>
       <div className={styles.name}>{file.name}</div>
       {file.description && <div className={styles.description}>{file.description}</div>}

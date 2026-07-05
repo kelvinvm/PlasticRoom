@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import type { Folder, ModelFile, Tag } from '../api/types'
+import { fileThumbnailUrl } from '../api/client'
 import { formatBytes, formatDimensions, formatPrintTime, tagColor } from '../lib/format'
 import { typeLabel } from './FileGrid'
 import styles from './FileDetailPanel.module.css'
@@ -15,6 +17,8 @@ interface Row {
 }
 
 export function FileDetailPanel({ file, folders, tags }: FileDetailPanelProps) {
+  const [thumbFailed, setThumbFailed] = useState(false)
+
   if (file === null) {
     return (
       <aside className={styles.panel}>
@@ -42,10 +46,21 @@ export function FileDetailPanel({ file, folders, tags }: FileDetailPanelProps) {
     .map((id) => tags.find((t) => t.id === id))
     .filter((t): t is Tag => t !== undefined)
 
+  const showImg = file.thumbnailPath !== null && !thumbFailed
+
   return (
     <aside className={styles.panel}>
       <div className={styles.thumb}>
-        <span className={styles.thumbLabel}>{typeLabel(file.type)} PREVIEW</span>
+        {showImg ? (
+          <img
+            className={styles.thumbImg}
+            src={fileThumbnailUrl(file.id)}
+            alt={`${file.name} preview`}
+            onError={() => setThumbFailed(true)}
+          />
+        ) : (
+          <span className={styles.thumbLabel}>{typeLabel(file.type)} PREVIEW</span>
+        )}
       </div>
       <h2 className={styles.name}>{file.name}</h2>
       {file.description && <p className={styles.description}>{file.description}</p>}
