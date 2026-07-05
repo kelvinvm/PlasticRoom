@@ -4,6 +4,7 @@ import { useFolders } from '../hooks/useFolders'
 import { useTags } from '../hooks/useTags'
 import { fileContentUrl } from '../api/client'
 import { fileTypeFromName, loadModelFromBuffer, type LoadedModel } from '../lib/modelLoading'
+import { renderPlateThumbnails } from '../lib/thumbnail'
 import { ModelViewer } from '../components/viewer/ModelViewer'
 import { ViewerModeToggle } from '../components/viewer/ViewerModeToggle'
 import { PlateFilmstrip } from '../components/viewer/PlateFilmstrip'
@@ -26,6 +27,7 @@ export function DetailView({
   const { tags } = useTags()
 
   const [model, setModel] = useState<LoadedModel | null>(null)
+  const [plateThumbs, setPlateThumbs] = useState<string[]>([])
   const [modelError, setModelError] = useState(false)
   const [mode, setMode] = useState<RenderMode>('solid')
   const [activePlate, setActivePlate] = useState<number | null>(null)
@@ -35,6 +37,7 @@ export function DetailView({
     if (!file) return
     let cancelled = false
     setModel(null)
+    setPlateThumbs([])
     setModelError(false)
     setActivePlate(null)
     const type = fileTypeFromName(file.name)
@@ -49,7 +52,16 @@ export function DetailView({
       })
       .then((buffer) => {
         if (cancelled) return
-        setModel(loadModelFromBuffer(buffer, type))
+        const loaded = loadModelFromBuffer(buffer, type)
+        // Generate per-plate thumbnails BEFORE the live viewer takes the model
+        // (renderPlateThumbnails temporarily reparents model.object). A failure
+        // here must never block the model from rendering.
+        try {
+          setPlateThumbs(renderPlateThumbnails(loaded))
+        } catch {
+          setPlateThumbs([])
+        }
+        setModel(loaded)
       })
       .catch(() => {
         if (!cancelled) setModelError(true)
@@ -96,7 +108,12 @@ export function DetailView({
             <ViewerModeToggle mode={mode} onChange={setMode} />
           </div>
           {viewerBody}
-          <PlateFilmstrip count={plateCount} activeIndex={activePlate} onSelect={setActivePlate} />
+          <PlateFilmstrip
+            count={plateCount}
+            activeIndex={activePlate}
+            onSelect={setActivePlate}
+            thumbnailUrls={plateThumbs}
+          />
         </div>
       </div>
 

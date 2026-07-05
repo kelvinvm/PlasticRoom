@@ -29,4 +29,18 @@ describe('PlateFilmstrip', () => {
     fireEvent.click(screen.getByRole('button', { name: 'All plates' }))
     expect(onSelect).toHaveBeenCalledWith(null)
   })
+
+  it('renders a thumbnail image per cell when urls are provided, placeholder otherwise', () => {
+    const { container } = render(
+      <PlateFilmstrip
+        count={2}
+        activeIndex={null}
+        onSelect={() => {}}
+        thumbnailUrls={['data:image/png;base64,AAA', null]}
+      />,
+    )
+    const imgs = container.querySelectorAll('img')
+    expect(imgs).toHaveLength(1)
+    expect(imgs[0]).toHaveAttribute('src', 'data:image/png;base64,AAA')
+  })
 })
