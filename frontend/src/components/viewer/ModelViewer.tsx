@@ -2,7 +2,13 @@ import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { LoadedModel } from '../../lib/modelLoading'
-import { applyRenderMode, setVisibleObjects, type RenderMode } from '../../lib/viewerModes'
+import {
+  applyRenderMode,
+  setVisibleObjects,
+  frameCameraToBox,
+  boundsForObjects,
+  type RenderMode,
+} from '../../lib/viewerModes'
 import styles from './ModelViewer.module.css'
 
 export function ModelViewer({
@@ -18,8 +24,11 @@ export function ModelViewer({
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
   const sceneRef = useRef<THREE.Scene | null>(null)
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
-  const controlsRef = useRef<{ update: () => void; dispose: () => void } | null>(null)
+  const controlsRef = useRef<{ update: () => void; dispose: () => void; target: THREE.Vector3 } | null>(null)
   const frameRef = useRef<number>(0)
+  // Key of the visible set the camera was last framed to; guards against
+  // re-framing (and stealing the user's orbit/zoom) on unrelated re-renders.
+  const frameKeyRef = useRef<string | null>(null)
 
   // Scene setup — runs once per loaded model.
   useEffect(() => {
@@ -41,20 +50,15 @@ export function ModelViewer({
       scene.add(key)
       scene.add(model.object)
 
-      const center = new THREE.Vector3()
-      const extent = new THREE.Vector3()
-      model.bounds.getCenter(center)
-      model.bounds.getSize(extent)
-      const radius = Math.max(extent.x, extent.y, extent.z) || 1
-
-      const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, radius * 100)
-      camera.position.set(center.x + radius * 1.6, center.y + radius * 1.4, center.z + radius * 1.6)
-      camera.lookAt(center)
+      const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
 
       const controls = new OrbitControls(camera, renderer.domElement)
       controls.enableDamping = true
-      controls.target.copy(center)
+
+      // Initial view fills the viewport with the whole model.
+      frameCameraToBox(camera, controls.target, model.bounds)
       controls.update()
+      frameKeyRef.current = 'all'
 
       rendererRef.current = renderer
       sceneRef.current = scene
@@ -116,6 +120,29 @@ export function ModelViewer({
       rendererRef.current.render(sceneRef.current, cameraRef.current)
     }
   }, [model, mode, visibleIndices])
+
+  // Re-frame the camera to fill the viewport with the currently visible objects
+  // whenever the visible SET changes (filmstrip plate click / All), so a plate
+  // that sits off-screen doesn't require manual zooming to find. Value-keyed so a
+  // new-but-equal visibleIndices array from an unrelated re-render (e.g. a
+  // description save) doesn't reset the user's manual orbit/zoom.
+  useEffect(() => {
+    const camera = cameraRef.current
+    const controls = controlsRef.current
+    if (!camera || !controls) return
+
+    const key = visibleIndices === null ? 'all' : [...visibleIndices].sort((a, b) => a - b).join(',')
+    if (key === frameKeyRef.current) return
+    frameKeyRef.current = key
+
+    const box =
+      visibleIndices === null ? model.bounds : boundsForObjects(model.objects, visibleIndices)
+    frameCameraToBox(camera, controls.target, box)
+    controls.update()
+    if (rendererRef.current && sceneRef.current) {
+      rendererRef.current.render(sceneRef.current, camera)
+    }
+  }, [model, visibleIndices])
 
   return (
     <div className={styles.stage}>
