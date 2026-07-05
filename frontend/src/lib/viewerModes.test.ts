@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 import * as THREE from 'three'
-import { applyRenderMode, setActivePlate, PLATE_COLORS } from './viewerModes'
+import { applyRenderMode, setActivePlate, setVisibleObjects, PLATE_COLORS } from './viewerModes'
 
 function meshObjects(n: number): THREE.Mesh[] {
   return Array.from({ length: n }, () =>
@@ -63,6 +63,21 @@ describe('setActivePlate', () => {
     const objs = meshObjects(3)
     setActivePlate(objs, 1)
     setActivePlate(objs, null)
+    expect(objs.every((o) => o.visible)).toBe(true)
+  })
+})
+
+describe('setVisibleObjects', () => {
+  it('shows only the objects whose index is listed', () => {
+    const objs = meshObjects(4)
+    setVisibleObjects(objs, [1, 3])
+    expect(objs.map((o) => o.visible)).toEqual([false, true, false, true])
+  })
+
+  it('null shows every object', () => {
+    const objs = meshObjects(3)
+    setVisibleObjects(objs, [0])
+    setVisibleObjects(objs, null)
     expect(objs.every((o) => o.visible)).toBe(true)
   })
 })

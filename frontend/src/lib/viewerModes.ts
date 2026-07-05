@@ -50,3 +50,9 @@ export function setActivePlate(objects: THREE.Object3D[], activeIndex: number | 
     object.visible = activeIndex === null || index === activeIndex
   })
 }
+
+export function setVisibleObjects(objects: THREE.Object3D[], indices: number[] | null): void {
+  objects.forEach((object, index) => {
+    object.visible = indices === null || indices.includes(index)
+  })
+}
