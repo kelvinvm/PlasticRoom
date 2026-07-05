@@ -92,7 +92,12 @@ export function ModelViewer({
             }
           }
         })
-        renderer.forceContextLoss()
+        // NOTE: do NOT call renderer.forceContextLoss() here. Under React
+        // StrictMode (dev), effects run mount→cleanup→mount on the SAME retained
+        // canvas; forceContextLoss permanently loses that canvas's WebGL context,
+        // so the remount renders nothing ("THREE.WebGLRenderer: Context Lost").
+        // dispose() frees GPU resources without killing the context; on a real
+        // unmount the canvas node is removed and the context is reclaimed.
         renderer.dispose()
         rendererRef.current = null
       }
