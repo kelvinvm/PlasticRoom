@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using DevExpress.Xpo;
 using Microsoft.AspNetCore.Mvc;
@@ -112,6 +113,62 @@ public class FoldersController : ControllerBase
 
         folder.Save();
         return Ok(ToDto(folder));
+    }
+
+    [HttpPut("order")]
+    public IActionResult Order([FromBody] ReorderFoldersRequest request)
+    {
+        if (request.Items is null || request.Items.Count == 0)
+        {
+            return BadRequest(new { error = "No folders to reorder" });
+        }
+
+        using var session = _sessionFactory.CreateSession();
+
+        // Validate everything before writing anything (atomic all-or-nothing).
+        var resolved = new List<(Folder folder, Folder? parent, int sortOrder)>();
+        foreach (var item in request.Items)
+        {
+            var folder = session.GetObjectByKey<Folder>(item.Id);
+            if (folder is null)
+            {
+                return NotFound(new { error = $"Folder {item.Id} not found" });
+            }
+
+            if (folder.IsSystem)
+            {
+                return BadRequest(new { error = $"Folder {item.Id} is a system folder and cannot be reordered" });
+            }
+
+            Folder? parent = null;
+            if (item.ParentId is int parentId)
+            {
+                parent = session.GetObjectByKey<Folder>(parentId);
+                if (parent is null)
+                {
+                    return NotFound(new { error = $"Parent folder {parentId} not found" });
+                }
+
+                if (WouldCreateCycle(folder, parent))
+                {
+                    return BadRequest(new { error = $"Folder {item.Id} cannot be moved under itself or its own descendant" });
+                }
+            }
+
+            resolved.Add((folder, parent, item.SortOrder));
+        }
+
+        session.BeginTransaction();
+        foreach (var (folder, parent, sortOrder) in resolved)
+        {
+            folder.ParentFolder = parent;
+            folder.SortOrder = sortOrder;
+            folder.Save();
+        }
+        session.CommitTransaction();
+
+        var all = new XPCollection<Folder>(session).Select(ToDto).ToList();
+        return Ok(all);
     }
 
     [HttpDelete("{id}")]

@@ -165,6 +165,88 @@ public class FoldersControllerTests : IDisposable
         Assert.Equal(b.Id, updated.ParentId);
     }
 
+    [Fact]
+    public void Order_ReordersAndReparents_Atomically()
+    {
+        var a = (FolderDto)Assert.IsType<CreatedAtActionResult>(
+            _controller.Create(new CreateFolderRequest("A", null, null))).Value!;
+        var b = (FolderDto)Assert.IsType<CreatedAtActionResult>(
+            _controller.Create(new CreateFolderRequest("B", null, null))).Value!;
+
+        // Put B before A at root, and nest A under B.
+        var result = _controller.Order(new ReorderFoldersRequest(new()
+        {
+            new FolderOrderItem(b.Id, null, 0),
+            new FolderOrderItem(a.Id, b.Id, 0),
+        }));
+
+        var folders = Assert.IsAssignableFrom<System.Collections.Generic.List<FolderDto>>(
+            Assert.IsType<OkObjectResult>(result).Value);
+        var updatedA = folders.Single(f => f.Id == a.Id);
+        Assert.Equal(b.Id, updatedA.ParentId);
+        Assert.Equal(0, updatedA.SortOrder);
+        Assert.Equal(0, folders.Single(f => f.Id == b.Id).SortOrder);
+    }
+
+    [Fact]
+    public void Order_RejectsSystemFolder_AndWritesNothing()
+    {
+        FolderSeeder.SeedSystemFolders(_factory);
+        var a = (FolderDto)Assert.IsType<CreatedAtActionResult>(
+            _controller.Create(new CreateFolderRequest("A", null, null))).Value!;
+        int systemId;
+        using (var session = _factory.CreateSession())
+        {
+            systemId = new DevExpress.Xpo.XPCollection<Folder>(session).First(f => f.IsSystem).Oid;
+        }
+
+        var result = _controller.Order(new ReorderFoldersRequest(new()
+        {
+            new FolderOrderItem(a.Id, null, 5),
+            new FolderOrderItem(systemId, null, 6),
+        }));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        using var verify = _factory.CreateSession();
+        // A's sortOrder was NOT changed (still 0 default) because validation failed first.
+        Assert.Equal(0, verify.GetObjectByKey<Folder>(a.Id)!.SortOrder);
+    }
+
+    [Fact]
+    public void Order_UnknownFolder_Returns404()
+    {
+        var result = _controller.Order(new ReorderFoldersRequest(new()
+        {
+            new FolderOrderItem(999999, null, 0),
+        }));
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public void Order_Cycle_Returns400_AndWritesNothing()
+    {
+        var parent = (FolderDto)Assert.IsType<CreatedAtActionResult>(
+            _controller.Create(new CreateFolderRequest("Parent", null, null))).Value!;
+        var child = (FolderDto)Assert.IsType<CreatedAtActionResult>(
+            _controller.Create(new CreateFolderRequest("Child", parent.Id, null))).Value!;
+
+        var result = _controller.Order(new ReorderFoldersRequest(new()
+        {
+            new FolderOrderItem(parent.Id, child.Id, 0),
+        }));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        using var verify = _factory.CreateSession();
+        Assert.Null(verify.GetObjectByKey<Folder>(parent.Id)!.ParentFolder);
+    }
+
+    [Fact]
+    public void Order_EmptyItems_Returns400()
+    {
+        Assert.IsType<BadRequestObjectResult>(
+            _controller.Order(new ReorderFoldersRequest(new())));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_tempDir))

@@ -18,3 +18,7 @@ public record UpdateFolderRequest(
     string? Description,
     int? SortOrder,
     int? CoverImageFileId);
+
+public record FolderOrderItem(int Id, int? ParentId, int SortOrder);
+
+public record ReorderFoldersRequest(System.Collections.Generic.List<FolderOrderItem> Items);
