@@ -84,6 +84,8 @@ export function LibraryView({
         selectedFolderId={selectedFolderId}
         onSelectFolder={setSelectedFolderId}
         onImport={onImport}
+        reloadFolders={reloadFolders}
+        reloadFiles={reloadFiles}
       />
       <main className={styles.center}>
         <LibraryToolbar
