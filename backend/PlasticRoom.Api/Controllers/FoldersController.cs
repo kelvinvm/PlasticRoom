@@ -151,5 +151,6 @@ public class FoldersController : ControllerBase
         folder.Description,
         folder.CoverImageFile?.Oid,
         folder.SortOrder,
-        folder.IsSystem);
+        folder.IsSystem,
+        folder.FileFolders.Count);
 }

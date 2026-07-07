@@ -7,7 +7,8 @@ public record FolderDto(
     string? Description,
     int? CoverImageFileId,
     int SortOrder,
-    bool IsSystem);
+    bool IsSystem,
+    int FileCount);
 
 public record CreateFolderRequest(string Name, int? ParentId, string? Description);
 

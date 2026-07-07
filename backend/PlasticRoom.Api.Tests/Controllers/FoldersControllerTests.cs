@@ -104,6 +104,38 @@ public class FoldersControllerTests : IDisposable
         Assert.Empty(new DevExpress.Xpo.XPCollection<FileFolder>(verifySession));
     }
 
+    [Fact]
+    public void GetAll_ReportsDirectFileCount_NotDescendantInclusive()
+    {
+        var parent = (FolderDto)Assert.IsType<CreatedAtActionResult>(
+            _controller.Create(new CreateFolderRequest("Parent", null, null))).Value!;
+        var child = (FolderDto)Assert.IsType<CreatedAtActionResult>(
+            _controller.Create(new CreateFolderRequest("Child", parent.Id, null))).Value!;
+
+        using (var session = _factory.CreateSession())
+        {
+            var parentFolder = session.GetObjectByKey<Folder>(parent.Id)!;
+            var childFolder = session.GetObjectByKey<Folder>(child.Id)!;
+            // One file assigned directly to the parent, one to the child.
+            foreach (var (name, folder) in new[] { ("p.stl", parentFolder), ("c.stl", childFolder) })
+            {
+                var file = new ModelFile(session)
+                {
+                    Name = name, Type = ModelFileType.Stl, SizeBytes = 1,
+                    AddedAt = DateTime.UtcNow, StoragePath = "/data/files/" + name,
+                };
+                file.Save();
+                new FileFolder(session) { File = file, Folder = folder }.Save();
+            }
+        }
+
+        var folders = Assert.IsAssignableFrom<System.Collections.Generic.List<FolderDto>>(
+            Assert.IsType<OkObjectResult>(_controller.GetAll()).Value);
+
+        Assert.Equal(1, folders.Single(f => f.Id == parent.Id).FileCount);
+        Assert.Equal(1, folders.Single(f => f.Id == child.Id).FileCount);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_tempDir))
