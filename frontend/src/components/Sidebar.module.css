@@ -84,3 +84,44 @@
   padding: 8px;
   cursor: pointer;
 }
+
+.rowMain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.chevron,
+.chevronSpacer {
+  width: 16px;
+  flex: 0 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chevron {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 10px;
+  padding: 0;
+}
+
+.fileCount {
+  margin-left: auto;
+  padding-left: 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
