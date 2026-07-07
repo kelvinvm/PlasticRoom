@@ -62,3 +62,35 @@ export function computeFolderMove(
 
   return deltas
 }
+
+export type DropZone = 'before' | 'onto' | 'after'
+
+// Map a hovered target row + zone to the DropPosition computeFolderMove expects.
+// Returns null for a no-op (hovering the dragged row itself, or a missing target).
+export function resolveDropPosition(
+  tree: FolderNode[],
+  dragId: number,
+  targetId: number,
+  zone: DropZone,
+): DropPosition | null {
+  if (targetId === dragId) return null
+  const target = findNode(tree, targetId)
+  if (!target) return null
+
+  if (zone === 'onto') {
+    return { kind: 'onto', folderId: targetId }
+  }
+
+  const parentId = target.parentId
+  const siblings = childrenOf(tree, parentId).filter((n) => n.id !== dragId)
+  const targetIndex = siblings.findIndex((n) => n.id === targetId)
+  if (targetIndex === -1) return null
+  const index = zone === 'before' ? targetIndex : targetIndex + 1
+  return { kind: 'between', parentId, index }
+}
+
+// Drop onto the root/"All Files" target: move the dragged folder to the end of the root list.
+export function resolveRootDrop(tree: FolderNode[], dragId: number): DropPosition {
+  const rootCount = tree.filter((n) => n.id !== dragId).length
+  return { kind: 'between', parentId: null, index: rootCount }
+}

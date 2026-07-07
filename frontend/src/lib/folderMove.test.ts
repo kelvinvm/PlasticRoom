@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildFolderTree } from './folderTree'
-import { computeFolderMove } from './folderMove'
+import { computeFolderMove, resolveDropPosition, resolveRootDrop } from './folderMove'
 import type { Folder } from '../api/types'
 
 // A(1) [C(3), D(4)], B(2)  — roots A,B; A has children C,D
@@ -39,5 +39,42 @@ describe('computeFolderMove', () => {
 
   it('returns [] when the dragged folder does not exist', () => {
     expect(computeFolderMove(tree(), 999, { kind: 'onto', folderId: 1 })).toEqual([])
+  })
+})
+
+describe('resolveDropPosition', () => {
+  it('onto a folder → onto DropPosition', () => {
+    expect(resolveDropPosition(tree(), 2, 1, 'onto')).toEqual({ kind: 'onto', folderId: 1 })
+  })
+
+  it('before a root sibling → between at that index', () => {
+    // drag D(4) before B(2): root siblings without drag = [A(1), B(2)], B at index 1
+    expect(resolveDropPosition(tree(), 4, 2, 'before')).toEqual({ kind: 'between', parentId: null, index: 1 })
+  })
+
+  it('after a root sibling → between at index+1', () => {
+    // drag C(3) after B(2): root siblings without drag = [A(1), B(2)], B at index 1 → 2
+    expect(resolveDropPosition(tree(), 3, 2, 'after')).toEqual({ kind: 'between', parentId: null, index: 2 })
+  })
+
+  it('reorder within a parent (after a sibling)', () => {
+    // drag C(3) after D(4): children of A(1) without drag = [D(4)], D at index 0 → 1
+    expect(resolveDropPosition(tree(), 3, 4, 'after')).toEqual({ kind: 'between', parentId: 1, index: 1 })
+  })
+
+  it('onto/into itself → null', () => {
+    expect(resolveDropPosition(tree(), 1, 1, 'onto')).toBeNull()
+    expect(resolveDropPosition(tree(), 1, 1, 'before')).toBeNull()
+  })
+
+  it('unknown target → null', () => {
+    expect(resolveDropPosition(tree(), 1, 999, 'onto')).toBeNull()
+  })
+})
+
+describe('resolveRootDrop', () => {
+  it('moves the dragged folder to the end of the root list', () => {
+    // roots without drag C(3) = [A(1), B(2)] → index 2
+    expect(resolveRootDrop(tree(), 3)).toEqual({ kind: 'between', parentId: null, index: 2 })
   })
 })
