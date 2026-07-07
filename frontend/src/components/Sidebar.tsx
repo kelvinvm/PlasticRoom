@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react'
+import type { DragEvent } from 'react'
 import type { Folder } from '../api/types'
 import { buildFolderTree, type FolderNode } from '../lib/folderTree'
 import { deleteFolder, reorderFolders, updateFolder } from '../api/client'
-import { computeFolderMove } from '../lib/folderMove'
+import { computeFolderMove, resolveDropPosition, resolveRootDrop, type DropZone } from '../lib/folderMove'
 import styles from './Sidebar.module.css'
 
 interface SidebarProps {
@@ -25,16 +26,24 @@ interface RowProps {
   onRequestDelete: (node: FolderNode) => void
   draggable: boolean
   dragId: number | null
-  dropTargetId: number | null
+  dropTarget: { id: number | 'root'; zone: DropZone } | null
   onDragStartRow: (id: number) => void
-  onDragOverRow: (id: number) => void
-  onDropRow: (id: number) => void
+  onDragOverRow: (id: number, zone: DropZone) => void
+  onDropRow: (id: number, zone: DropZone) => void
   onDragEndRow: () => void
+}
+
+function zoneFromEvent(e: DragEvent<HTMLDivElement>): DropZone {
+  const rect = e.currentTarget.getBoundingClientRect()
+  const offset = e.clientY - rect.top
+  return rect.height > 0 && offset < rect.height * 0.25 ? 'before'
+    : rect.height > 0 && offset > rect.height * 0.75 ? 'after'
+    : 'onto'
 }
 
 function FolderRow({
   node, depth, selectedFolderId, onSelectFolder, collapsed, onToggleCollapse, onRename, onRequestDelete,
-  draggable, dragId, dropTargetId, onDragStartRow, onDragOverRow, onDropRow, onDragEndRow,
+  draggable, dragId, dropTarget, onDragStartRow, onDragOverRow, onDropRow, onDragEndRow,
 }: RowProps) {
   const selected = node.id === selectedFolderId
   const hasChildren = node.children.length > 0
@@ -54,16 +63,23 @@ function FolderRow({
     setRenaming(false)
   }
 
+  const isTarget = dropTarget !== null && dropTarget.id === node.id
+  const dropClass = isTarget
+    ? dropTarget!.zone === 'before' ? styles.dropBefore
+      : dropTarget!.zone === 'after' ? styles.dropAfter
+      : styles.dropTarget
+    : ''
+
   return (
     <>
       <div
-        className={`${styles.row} ${selected ? styles.rowSelected : ''} ${dropTargetId === node.id ? styles.dropTarget : ''}`}
+        className={`${styles.row} ${selected ? styles.rowSelected : ''} ${dropClass}`}
         style={{ paddingLeft: 12 + depth * 14 }}
         draggable={editable}
         onContextMenu={editable ? (e) => { e.preventDefault(); setMenuOpen(true) } : undefined}
         onDragStart={editable ? (e) => { e.stopPropagation(); onDragStartRow(node.id) } : undefined}
-        onDragOver={editable ? (e) => { e.preventDefault(); onDragOverRow(node.id) } : undefined}
-        onDrop={editable ? (e) => { e.preventDefault(); onDropRow(node.id) } : undefined}
+        onDragOver={editable ? (e) => { e.preventDefault(); onDragOverRow(node.id, zoneFromEvent(e)) } : undefined}
+        onDrop={editable ? (e) => { e.preventDefault(); onDropRow(node.id, zoneFromEvent(e)) } : undefined}
         onDragEnd={editable ? onDragEndRow : undefined}
       >
         {hasChildren ? (
@@ -139,7 +155,7 @@ function FolderRow({
           onRequestDelete={onRequestDelete}
           draggable={draggable}
           dragId={dragId}
-          dropTargetId={dropTargetId}
+          dropTarget={dropTarget}
           onDragStartRow={onDragStartRow}
           onDragOverRow={onDragOverRow}
           onDropRow={onDropRow}
@@ -157,16 +173,34 @@ export function Sidebar({
   const [pendingDelete, setPendingDelete] = useState<FolderNode | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [dragId, setDragId] = useState<number | null>(null)
-  const [dropTargetId, setDropTargetId] = useState<number | null>(null)
+  const [dropTarget, setDropTarget] = useState<{ id: number | 'root'; zone: DropZone } | null>(null)
 
   const libraryTreeNodes = buildFolderTree(folders.filter((f) => !f.isSystem))
 
-  const handleDrop = async (targetFolderId: number) => {
+  const handleDrop = async (targetId: number, zone: DropZone) => {
     const source = dragId
     setDragId(null)
-    setDropTargetId(null)
-    if (source === null || source === targetFolderId) return
-    const items = computeFolderMove(libraryTreeNodes, source, { kind: 'onto', folderId: targetFolderId })
+    setDropTarget(null)
+    if (source === null) return
+    const pos = resolveDropPosition(libraryTreeNodes, source, targetId, zone)
+    if (!pos) return
+    const items = computeFolderMove(libraryTreeNodes, source, pos)
+    if (items.length === 0) return
+    setActionError(null)
+    try {
+      await reorderFolders(items)
+      reloadFolders()
+    } catch {
+      setActionError('Could not move folder.')
+    }
+  }
+
+  const handleRootDrop = async () => {
+    const source = dragId
+    setDragId(null)
+    setDropTarget(null)
+    if (source === null) return
+    const items = computeFolderMove(libraryTreeNodes, source, resolveRootDrop(libraryTreeNodes, source))
     if (items.length === 0) return
     setActionError(null)
     try {
@@ -230,7 +264,12 @@ export function Sidebar({
       </button>
 
       <div className={styles.sectionLabel}>Library</div>
-      <div className={`${styles.row} ${allFilesSelected ? styles.rowSelected : ''}`} style={{ paddingLeft: 12 }}>
+      <div
+        className={`${styles.row} ${allFilesSelected ? styles.rowSelected : ''} ${dropTarget?.id === 'root' ? styles.dropTarget : ''}`}
+        style={{ paddingLeft: 12 }}
+        onDragOver={(e) => { e.preventDefault(); setDropTarget({ id: 'root', zone: 'onto' }) }}
+        onDrop={(e) => { e.preventDefault(); handleRootDrop() }}
+      >
         <span className={styles.chevronSpacer} aria-hidden="true" />
         <button
           type="button"
@@ -255,11 +294,11 @@ export function Sidebar({
           onRequestDelete={setPendingDelete}
           draggable
           dragId={dragId}
-          dropTargetId={dropTargetId}
+          dropTarget={dropTarget}
           onDragStartRow={setDragId}
-          onDragOverRow={setDropTargetId}
+          onDragOverRow={(id, zone) => setDropTarget({ id, zone })}
           onDropRow={handleDrop}
-          onDragEndRow={() => { setDragId(null); setDropTargetId(null) }}
+          onDragEndRow={() => { setDragId(null); setDropTarget(null) }}
         />
       ))}
 
@@ -277,7 +316,7 @@ export function Sidebar({
           onRequestDelete={setPendingDelete}
           draggable={false}
           dragId={null}
-          dropTargetId={null}
+          dropTarget={null}
           onDragStartRow={() => {}}
           onDragOverRow={() => {}}
           onDropRow={() => {}}

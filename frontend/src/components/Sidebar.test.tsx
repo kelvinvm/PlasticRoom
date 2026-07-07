@@ -1,13 +1,17 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('../api/client', () => ({
   updateFolder: vi.fn().mockResolvedValue({}),
   deleteFolder: vi.fn().mockResolvedValue(undefined),
   reorderFolders: vi.fn().mockResolvedValue([]),
 }))
-import { updateFolder, deleteFolder } from '../api/client'
+import { updateFolder, deleteFolder, reorderFolders } from '../api/client'
 import { Sidebar } from './Sidebar'
 import type { Folder } from '../api/types'
+
+beforeEach(() => {
+  vi.clearAllMocks()
+})
 
 const folder = (
   id: number, name: string, parentId: number | null, isSystem = false, fileCount = 0,
@@ -96,5 +100,52 @@ describe('Sidebar', () => {
     await waitFor(() => expect(reloadFolders).toHaveBeenCalled())
     expect(deleteFolder).toHaveBeenCalledWith(1)
     expect(reloadFiles).toHaveBeenCalled()
+  })
+})
+
+const dndFolders: Folder[] = [
+  folder(1, 'Alpha', null, false, 0),
+  folder(2, 'Beta', null, false, 0),
+  folder(3, 'Favorites', null, true),
+]
+
+function rowOf(name: string): HTMLElement {
+  // the draggable row is the nearest ancestor with a draggable attribute
+  return screen.getByText(name).closest('[draggable="true"]') as HTMLElement
+}
+
+describe('Sidebar drag-and-drop wiring', () => {
+  it('dropping one library folder onto another persists a move and reloads', async () => {
+    const reloadFolders = vi.fn()
+    render(<Sidebar folders={dndFolders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={reloadFolders} reloadFiles={vi.fn()} />)
+    fireEvent.dragStart(rowOf('Beta'))
+    fireEvent.drop(rowOf('Alpha'))
+    await waitFor(() => expect(reorderFolders).toHaveBeenCalled())
+    expect(reloadFolders).toHaveBeenCalled()
+  })
+
+  it('a failed reorder surfaces an alert and does not reload', async () => {
+    ;(reorderFolders as unknown as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('nope'))
+    const reloadFolders = vi.fn()
+    render(<Sidebar folders={dndFolders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={reloadFolders} reloadFiles={vi.fn()} />)
+    fireEvent.dragStart(rowOf('Beta'))
+    fireEvent.drop(rowOf('Alpha'))
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(reloadFolders).not.toHaveBeenCalled()
+  })
+
+  it('dropping onto "All Files" un-nests to root', async () => {
+    // Beta is nested under Alpha; dropping it on All Files moves it to root.
+    const nested: Folder[] = [folder(1, 'Alpha', null, false, 0), folder(2, 'Beta', 1, false, 0)]
+    const reloadFolders = vi.fn()
+    render(<Sidebar folders={nested} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={reloadFolders} reloadFiles={vi.fn()} />)
+    fireEvent.dragStart(rowOf('Beta'))
+    fireEvent.drop(screen.getByText('All Files').closest('div') as HTMLElement)
+    await waitFor(() => expect(reorderFolders).toHaveBeenCalled())
+  })
+
+  it('a system (collections) row is not draggable', () => {
+    render(<Sidebar folders={dndFolders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={vi.fn()} reloadFiles={vi.fn()} />)
+    expect(screen.getByText('Favorites').closest('[draggable]')).toHaveAttribute('draggable', 'false')
   })
 })
