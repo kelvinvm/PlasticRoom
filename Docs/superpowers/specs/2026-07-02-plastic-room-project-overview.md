@@ -1,7 +1,7 @@
 # PlasticRoom — Project Overview
 
-**Last updated:** 2026-07-05  
-**Status:** Phases 1–7 complete and merged to master; Phase 8 (Folder Management) remaining  
+**Last updated:** 2026-07-06  
+**Status:** Phases 1–7 complete and merged to master; Phase 8 (Folder Management) complete on branch `phase-8-folder-management`, pending merge — all build phases done  
 **Design reference:** `Docs/design_handoff_3d_print_organizer/README.md` + `design_reference.dc.html`
 
 ---
@@ -203,8 +203,10 @@ Deliverables:
 - Cover image: auto-suggested thumbnails from files in the folder; "+ Upload" tile
 - Action row: Save changes (orange), Move to… (outlined), Delete folder (destructive red)
 
-**Status:** Not started  
-**Spec:** *(to be written when Phase 8 begins)*
+**Status:** Complete (branch `phase-8-folder-management`, pending merge)  
+**Spec:** [Phase 8 — Folder Management](2026-07-06-phase-8-folder-management.md)  
+**Plan:** [Phase 8 implementation plan](../plans/2026-07-06-phase-8-folder-management.md)  
+**Note:** Implemented as inline editing in the existing Sidebar (rename, drag reorder/re-nest/un-nest, delete-with-confirm, chevrons, file counts), intentionally diverging from the dedicated Screen 6a layout. Cover images, per-folder description editing, and keyboard-accessible move were deferred (see `Docs/future-refinements.md`).
 
 ---
 
