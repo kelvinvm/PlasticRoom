@@ -1488,6 +1488,303 @@ git commit -m "docs: mark Phase 8 folder management complete"
 
 ---
 
+### Task 10: Frontend — `resolveDropPosition` + `resolveRootDrop` helpers
+
+> Added after the final whole-branch review: the shipped Task 8 drag only wired `{ kind: 'onto' }`, so sibling reorder and un-nest-to-root were unreachable. These pure helpers map a hovered target row + drop-zone (and the root drop) to the `DropPosition` that `computeFolderMove` already understands.
+
+**Files:**
+- Modify: `frontend/src/lib/folderMove.ts` (append helpers)
+- Test: `frontend/src/lib/folderMove.test.ts` (append cases)
+
+**Interfaces:**
+- Consumes: existing module-private `findNode`/`childrenOf` and exported `DropPosition` in `folderMove.ts`; `FolderNode` from `./folderTree`.
+- Produces:
+  - `type DropZone = 'before' | 'onto' | 'after'`
+  - `resolveDropPosition(tree, dragId, targetId, zone): DropPosition | null` — `null` for a no-op (hovering the dragged row itself, or a missing target).
+  - `resolveRootDrop(tree, dragId): DropPosition` — move the dragged folder to the end of the root list.
+
+- [ ] **Step 1: Write the failing tests**
+
+Append to `frontend/src/lib/folderMove.test.ts` (reuse the existing `f`/`tree` helpers already in that file — same `A(1)[C(3),D(4)], B(2)` fixture):
+
+```ts
+import { resolveDropPosition, resolveRootDrop } from './folderMove'
+
+describe('resolveDropPosition', () => {
+  it('onto a folder → onto DropPosition', () => {
+    expect(resolveDropPosition(tree(), 2, 1, 'onto')).toEqual({ kind: 'onto', folderId: 1 })
+  })
+
+  it('before a root sibling → between at that index', () => {
+    // drag D(4) before B(2): root siblings without drag = [A(1), B(2)], B at index 1
+    expect(resolveDropPosition(tree(), 4, 2, 'before')).toEqual({ kind: 'between', parentId: null, index: 1 })
+  })
+
+  it('after a root sibling → between at index+1', () => {
+    // drag C(3) after B(2): root siblings without drag = [A(1), B(2)], B at index 1 → 2
+    expect(resolveDropPosition(tree(), 3, 2, 'after')).toEqual({ kind: 'between', parentId: null, index: 2 })
+  })
+
+  it('reorder within a parent (after a sibling)', () => {
+    // drag C(3) after D(4): children of A(1) without drag = [D(4)], D at index 0 → 1
+    expect(resolveDropPosition(tree(), 3, 4, 'after')).toEqual({ kind: 'between', parentId: 1, index: 1 })
+  })
+
+  it('onto/into itself → null', () => {
+    expect(resolveDropPosition(tree(), 1, 1, 'onto')).toBeNull()
+    expect(resolveDropPosition(tree(), 1, 1, 'before')).toBeNull()
+  })
+
+  it('unknown target → null', () => {
+    expect(resolveDropPosition(tree(), 1, 999, 'onto')).toBeNull()
+  })
+})
+
+describe('resolveRootDrop', () => {
+  it('moves the dragged folder to the end of the root list', () => {
+    // roots without drag C(3) = [A(1), B(2)] → index 2
+    expect(resolveRootDrop(tree(), 3)).toEqual({ kind: 'between', parentId: null, index: 2 })
+  })
+})
+```
+
+- [ ] **Step 2: Run to verify failure**
+
+Run: `cd frontend; npx vitest run src/lib/folderMove.test.ts`
+Expected: FAIL — `resolveDropPosition`/`resolveRootDrop` not exported.
+
+- [ ] **Step 3: Implement the helpers**
+
+Append to `frontend/src/lib/folderMove.ts`:
+
+```ts
+export type DropZone = 'before' | 'onto' | 'after'
+
+// Map a hovered target row + zone to the DropPosition computeFolderMove expects.
+// Returns null for a no-op (hovering the dragged row itself, or a missing target).
+export function resolveDropPosition(
+  tree: FolderNode[],
+  dragId: number,
+  targetId: number,
+  zone: DropZone,
+): DropPosition | null {
+  if (targetId === dragId) return null
+  const target = findNode(tree, targetId)
+  if (!target) return null
+
+  if (zone === 'onto') {
+    return { kind: 'onto', folderId: targetId }
+  }
+
+  const parentId = target.parentId
+  const siblings = childrenOf(tree, parentId).filter((n) => n.id !== dragId)
+  const targetIndex = siblings.findIndex((n) => n.id === targetId)
+  if (targetIndex === -1) return null
+  const index = zone === 'before' ? targetIndex : targetIndex + 1
+  return { kind: 'between', parentId, index }
+}
+
+// Drop onto the root/"All Files" target: move the dragged folder to the end of the root list.
+export function resolveRootDrop(tree: FolderNode[], dragId: number): DropPosition {
+  const rootCount = tree.filter((n) => n.id !== dragId).length
+  return { kind: 'between', parentId: null, index: rootCount }
+}
+```
+
+- [ ] **Step 4: Run to verify pass**
+
+Run: `cd frontend; npx vitest run src/lib/folderMove.test.ts`
+Expected: PASS (original 6 + 7 new).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add frontend/src/lib/folderMove.ts frontend/src/lib/folderMove.test.ts
+git commit -m "feat(frontend): resolveDropPosition + resolveRootDrop helpers"
+```
+
+---
+
+### Task 11: Frontend — full drag reorder + un-nest wiring in Sidebar
+
+**Files:**
+- Modify: `frontend/src/components/Sidebar.tsx` (zone detection, insertion indicators, root drop target, use the Task 10 helpers)
+- Modify: `frontend/src/components/Sidebar.module.css` (before/after insertion-line styles)
+- Test: `frontend/src/components/Sidebar.test.tsx` (RTL drop-handler branch tests)
+
+**Interfaces:**
+- Consumes: `resolveDropPosition`, `resolveRootDrop`, `computeFolderMove`, `DropZone` from `../lib/folderMove`; `reorderFolders` from `../api/client`.
+- Produces: LIBRARY rows compute a drop zone from cursor Y (top ~25% → `before`, bottom ~25% → `after`, middle → `onto`) and show a before/after insertion line or the existing onto-highlight; the "All Files" row is a drop target that un-nests the dragged folder to root. All drops go through the Task 10 helpers → `computeFolderMove` → `reorderFolders` → `reloadFolders()`; failure → `setActionError`.
+
+**Integration note for the implementer:** this replaces the Task 8 drag wiring, which currently hardcodes `{ kind: 'onto', folderId }` in `handleDrop` and tracks only `dropTargetId`. Read the current `Sidebar.tsx` DnD wiring first. You will: (a) extend the drop-target state to also carry the zone (`dropZone: DropZone | null`); (b) in `FolderRow`'s `onDragOver`, compute the zone from `e.currentTarget.getBoundingClientRect()` and `e.clientY` and report it via `onDragOverRow(node.id, zone)`; (c) in `onDrop`, call `onDropRow(node.id, zone)`; (d) change `handleDrop(targetId, zone)` to `resolveDropPosition(libraryTreeNodes, source, targetId, zone)` (bail on `null`) then `computeFolderMove` as before; (e) add a root drop handler on the "All Files" row using `resolveRootDrop`; (f) render `.dropBefore`/`.dropAfter` classes for between-zones and keep `.dropTarget` for `onto`.
+
+- [ ] **Step 1: Write the failing tests**
+
+Add to `Sidebar.test.tsx` (the `vi.mock('../api/client', …)` from Task 7 already mocks `reorderFolders`). These use RTL synthetic drag events (real gestures aren't needed; in jsdom `getBoundingClientRect()` returns zeros so the default zone is `onto` — sufficient for these branch tests). Add a fixture with two library roots so a move is meaningful:
+
+```tsx
+const dndFolders: Folder[] = [
+  folder(1, 'Alpha', null, false, 0),
+  folder(2, 'Beta', null, false, 0),
+  folder(3, 'Favorites', null, true),
+]
+
+function rowOf(name: string): HTMLElement {
+  // the draggable row is the nearest ancestor with a draggable attribute
+  return screen.getByText(name).closest('[draggable="true"]') as HTMLElement
+}
+
+describe('Sidebar drag-and-drop wiring', () => {
+  it('dropping one library folder onto another persists a move and reloads', async () => {
+    const reloadFolders = vi.fn()
+    render(<Sidebar folders={dndFolders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={reloadFolders} reloadFiles={vi.fn()} />)
+    fireEvent.dragStart(rowOf('Beta'))
+    fireEvent.drop(rowOf('Alpha'))
+    await waitFor(() => expect(reorderFolders).toHaveBeenCalled())
+    expect(reloadFolders).toHaveBeenCalled()
+  })
+
+  it('a failed reorder surfaces an alert and does not reload', async () => {
+    ;(reorderFolders as unknown as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('nope'))
+    const reloadFolders = vi.fn()
+    render(<Sidebar folders={dndFolders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={reloadFolders} reloadFiles={vi.fn()} />)
+    fireEvent.dragStart(rowOf('Beta'))
+    fireEvent.drop(rowOf('Alpha'))
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(reloadFolders).not.toHaveBeenCalled()
+  })
+
+  it('dropping onto "All Files" un-nests to root', async () => {
+    // Beta is nested under Alpha; dropping it on All Files moves it to root.
+    const nested: Folder[] = [folder(1, 'Alpha', null, false, 0), folder(2, 'Beta', 1, false, 0)]
+    const reloadFolders = vi.fn()
+    render(<Sidebar folders={nested} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={reloadFolders} reloadFiles={vi.fn()} />)
+    fireEvent.dragStart(rowOf('Beta'))
+    fireEvent.drop(screen.getByText('All Files').closest('div') as HTMLElement)
+    await waitFor(() => expect(reorderFolders).toHaveBeenCalled())
+  })
+
+  it('a system (collections) row is not draggable', () => {
+    render(<Sidebar folders={dndFolders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={vi.fn()} reloadFiles={vi.fn()} />)
+    expect(screen.getByText('Favorites').closest('[draggable]')).toHaveAttribute('draggable', 'false')
+  })
+})
+```
+
+- [ ] **Step 2: Run to verify failure**
+
+Run: `cd frontend; npx vitest run src/components/Sidebar.test.tsx`
+Expected: FAIL — the root ("All Files") row has no drop handler yet, and (depending on current wiring) `handleDrop` still hardcodes `onto`. Confirm the new tests fail before wiring.
+
+- [ ] **Step 3: Wire zone detection, root drop, and indicators**
+
+Read the current `Sidebar.tsx` DnD code, then apply the integration described in the Integration note. Concretely:
+
+- Import: `import { computeFolderMove, resolveDropPosition, resolveRootDrop, type DropZone } from '../lib/folderMove'`.
+- Sidebar drop state: add a zone alongside the target id, e.g. `const [dropTarget, setDropTarget] = useState<{ id: number | 'root'; zone: DropZone } | null>(null)` (or keep `dropTargetId` and add `dropZone`). Clear it on drop and `dragEnd`.
+- Zone from cursor (helper inside `FolderRow`'s `onDragOver`):
+
+```tsx
+const rect = e.currentTarget.getBoundingClientRect()
+const offset = e.clientY - rect.top
+const zone: DropZone =
+  rect.height > 0 && offset < rect.height * 0.25 ? 'before'
+  : rect.height > 0 && offset > rect.height * 0.75 ? 'after'
+  : 'onto'
+onDragOverRow(node.id, zone)
+```
+
+- `handleDrop(targetId, zone)`:
+
+```tsx
+const source = dragId
+setDragId(null)
+setDropTarget(null)
+if (source === null) return
+const pos = resolveDropPosition(libraryTreeNodes, source, targetId, zone)
+if (!pos) return
+const items = computeFolderMove(libraryTreeNodes, source, pos)
+if (items.length === 0) return
+setActionError(null)
+try {
+  await reorderFolders(items)
+  reloadFolders()
+} catch {
+  setActionError('Could not move folder.')
+}
+```
+
+- Root drop: give the "All Files" row `onDragOver={(e) => { e.preventDefault(); setDropTarget({ id: 'root', zone: 'onto' }) }}` and `onDrop={(e) => { e.preventDefault(); handleRootDrop() }}`, where:
+
+```tsx
+const handleRootDrop = async () => {
+  const source = dragId
+  setDragId(null)
+  setDropTarget(null)
+  if (source === null) return
+  const items = computeFolderMove(libraryTreeNodes, source, resolveRootDrop(libraryTreeNodes, source))
+  if (items.length === 0) return
+  setActionError(null)
+  try {
+    await reorderFolders(items)
+    reloadFolders()
+  } catch {
+    setActionError('Could not move folder.')
+  }
+}
+```
+
+- Row class: apply `styles.dropTarget` when this row is the target with zone `onto`, `styles.dropBefore` for `before`, `styles.dropAfter` for `after`. Keep COLLECTIONS rows non-draggable and non-drop-targets (unchanged from Task 8).
+
+- [ ] **Step 4: Add the CSS**
+
+Append to `frontend/src/components/Sidebar.module.css`:
+
+```css
+.dropBefore { box-shadow: inset 0 2px 0 0 var(--accent); }
+.dropAfter { box-shadow: inset 0 -2px 0 0 var(--accent); }
+```
+
+- [ ] **Step 5: Run tests + typecheck + full suite**
+
+Run: `cd frontend; npx vitest run src/components/Sidebar.test.tsx`
+Expected: PASS (new drop-branch tests + all prior Sidebar tests). Output must be pristine (no act() warnings — the drop tests `await waitFor`/`findByRole`).
+
+Run: `cd frontend; npx tsc -b; npx vitest run`
+Expected: tsc clean; full suite green.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add frontend/src/components/Sidebar.tsx frontend/src/components/Sidebar.module.css frontend/src/components/Sidebar.test.tsx
+git commit -m "feat(frontend): drag sibling-reorder + un-nest-to-root in Sidebar"
+```
+
+---
+
+### Task 12: Frontend — swap `.fileCount` to the mono design token
+
+**Files:**
+- Modify: `frontend/src/components/Sidebar.module.css` (`.fileCount`)
+
+- [ ] **Step 1: Apply the token**
+
+In `frontend/src/components/Sidebar.module.css`, change the `.fileCount` rule's `font-family: 'IBM Plex Mono', monospace;` to `font-family: var(--font-mono);` (the token is defined in `frontend/src/styles/tokens.css` and used elsewhere in this file, e.g. `.sectionLabel`).
+
+- [ ] **Step 2: Verify**
+
+Run: `cd frontend; npx vitest run src/components/Sidebar.test.tsx; npx tsc -b`
+Expected: tests still pass; tsc clean.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add frontend/src/components/Sidebar.module.css
+git commit -m "style(frontend): use --font-mono token for folder file count"
+```
+
+---
+
 ## Notes for the implementer
 
 - **Server is the source of truth.** After every mutation (rename, reorder, delete) the Sidebar calls `reloadFolders()` (and `reloadFiles()` on delete); do not maintain a separate optimistic tree.
