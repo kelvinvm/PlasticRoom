@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react'
 import type { Folder } from '../api/types'
 import { buildFolderTree, type FolderNode } from '../lib/folderTree'
-import { deleteFolder, updateFolder } from '../api/client'
+import { deleteFolder, reorderFolders, updateFolder } from '../api/client'
+import { computeFolderMove } from '../lib/folderMove'
 import styles from './Sidebar.module.css'
 
 interface SidebarProps {
@@ -22,10 +23,18 @@ interface RowProps {
   onToggleCollapse: (id: number) => void
   onRename: (id: number, name: string) => void
   onRequestDelete: (node: FolderNode) => void
+  draggable: boolean
+  dragId: number | null
+  dropTargetId: number | null
+  onDragStartRow: (id: number) => void
+  onDragOverRow: (id: number) => void
+  onDropRow: (id: number) => void
+  onDragEndRow: () => void
 }
 
 function FolderRow({
   node, depth, selectedFolderId, onSelectFolder, collapsed, onToggleCollapse, onRename, onRequestDelete,
+  draggable, dragId, dropTargetId, onDragStartRow, onDragOverRow, onDropRow, onDragEndRow,
 }: RowProps) {
   const selected = node.id === selectedFolderId
   const hasChildren = node.children.length > 0
@@ -48,9 +57,14 @@ function FolderRow({
   return (
     <>
       <div
-        className={`${styles.row} ${selected ? styles.rowSelected : ''}`}
+        className={`${styles.row} ${selected ? styles.rowSelected : ''} ${dropTargetId === node.id ? styles.dropTarget : ''}`}
         style={{ paddingLeft: 12 + depth * 14 }}
+        draggable={editable}
         onContextMenu={editable ? (e) => { e.preventDefault(); setMenuOpen(true) } : undefined}
+        onDragStart={editable ? (e) => { e.stopPropagation(); onDragStartRow(node.id) } : undefined}
+        onDragOver={editable ? (e) => { e.preventDefault(); onDragOverRow(node.id) } : undefined}
+        onDrop={editable ? (e) => { e.preventDefault(); onDropRow(node.id) } : undefined}
+        onDragEnd={editable ? onDragEndRow : undefined}
       >
         {hasChildren ? (
           <button
@@ -123,6 +137,13 @@ function FolderRow({
           onToggleCollapse={onToggleCollapse}
           onRename={onRename}
           onRequestDelete={onRequestDelete}
+          draggable={draggable}
+          dragId={dragId}
+          dropTargetId={dropTargetId}
+          onDragStartRow={onDragStartRow}
+          onDragOverRow={onDragOverRow}
+          onDropRow={onDropRow}
+          onDragEndRow={onDragEndRow}
         />
       ))}
     </>
@@ -135,6 +156,26 @@ export function Sidebar({
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set())
   const [pendingDelete, setPendingDelete] = useState<FolderNode | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [dragId, setDragId] = useState<number | null>(null)
+  const [dropTargetId, setDropTargetId] = useState<number | null>(null)
+
+  const libraryTreeNodes = buildFolderTree(folders.filter((f) => !f.isSystem))
+
+  const handleDrop = async (targetFolderId: number) => {
+    const source = dragId
+    setDragId(null)
+    setDropTargetId(null)
+    if (source === null || source === targetFolderId) return
+    const items = computeFolderMove(libraryTreeNodes, source, { kind: 'onto', folderId: targetFolderId })
+    if (items.length === 0) return
+    setActionError(null)
+    try {
+      await reorderFolders(items)
+      reloadFolders()
+    } catch {
+      setActionError('Could not move folder.')
+    }
+  }
 
   const toggleCollapse = (id: number) =>
     setCollapsed((cur) => {
@@ -174,7 +215,6 @@ export function Sidebar({
     }
   }
 
-  const libraryTree = buildFolderTree(folders.filter((f) => !f.isSystem))
   const collectionsTree = buildFolderTree(folders.filter((f) => f.isSystem))
   const allFilesSelected = selectedFolderId === null
 
@@ -202,7 +242,7 @@ export function Sidebar({
           <span className={styles.rowLabel}>All Files</span>
         </button>
       </div>
-      {libraryTree.map((node) => (
+      {libraryTreeNodes.map((node) => (
         <FolderRow
           key={node.id}
           node={node}
@@ -213,6 +253,13 @@ export function Sidebar({
           onToggleCollapse={toggleCollapse}
           onRename={handleRename}
           onRequestDelete={setPendingDelete}
+          draggable
+          dragId={dragId}
+          dropTargetId={dropTargetId}
+          onDragStartRow={setDragId}
+          onDragOverRow={setDropTargetId}
+          onDropRow={handleDrop}
+          onDragEndRow={() => { setDragId(null); setDropTargetId(null) }}
         />
       ))}
 
@@ -228,6 +275,13 @@ export function Sidebar({
           onToggleCollapse={toggleCollapse}
           onRename={handleRename}
           onRequestDelete={setPendingDelete}
+          draggable={false}
+          dragId={null}
+          dropTargetId={null}
+          onDragStartRow={() => {}}
+          onDragOverRow={() => {}}
+          onDropRow={() => {}}
+          onDragEndRow={() => {}}
         />
       ))}
 
