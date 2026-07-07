@@ -125,7 +125,7 @@ public class FoldersController : ControllerBase
 
         using var session = _sessionFactory.CreateSession();
 
-        // Validate everything before writing anything (atomic all-or-nothing).
+        // Validate existence + non-system + parent existence before writing anything.
         var resolved = new List<(Folder folder, Folder? parent, int sortOrder)>();
         foreach (var item in request.Items)
         {
@@ -148,14 +148,42 @@ public class FoldersController : ControllerBase
                 {
                     return NotFound(new { error = $"Parent folder {parentId} not found" });
                 }
-
-                if (WouldCreateCycle(folder, parent))
-                {
-                    return BadRequest(new { error = $"Folder {item.Id} cannot be moved under itself or its own descendant" });
-                }
             }
 
             resolved.Add((folder, parent, item.SortOrder));
+        }
+
+        // Cycle check against the batch's INTENDED end-state, not just current parents.
+        // Catches mutual reparents (X->Y and Y->X in one batch) that each look safe
+        // against the pre-batch graph but together form a cycle.
+        var proposedParent = new Dictionary<int, int?>();
+        foreach (var item in request.Items)
+        {
+            proposedParent[item.Id] = item.ParentId;
+        }
+
+        int? EffectiveParent(Folder f) =>
+            proposedParent.TryGetValue(f.Oid, out var p) ? p : f.ParentFolder?.Oid;
+
+        foreach (var (folder, _, _) in resolved)
+        {
+            var seen = new HashSet<int>();
+            int? cursor = EffectiveParent(folder);
+            while (cursor is int cid)
+            {
+                if (cid == folder.Oid || !seen.Add(cid))
+                {
+                    return BadRequest(new { error = $"Folder {folder.Oid} cannot be moved under itself or its own descendant" });
+                }
+
+                var next = session.GetObjectByKey<Folder>(cid);
+                if (next is null)
+                {
+                    break;
+                }
+
+                cursor = EffectiveParent(next);
+            }
         }
 
         session.BeginTransaction();

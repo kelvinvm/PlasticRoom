@@ -241,6 +241,27 @@ public class FoldersControllerTests : IDisposable
     }
 
     [Fact]
+    public void Order_RejectsMutualReparentCycle_AndWritesNothing()
+    {
+        var x = (FolderDto)Assert.IsType<CreatedAtActionResult>(
+            _controller.Create(new CreateFolderRequest("X", null, null))).Value!;
+        var y = (FolderDto)Assert.IsType<CreatedAtActionResult>(
+            _controller.Create(new CreateFolderRequest("Y", null, null))).Value!;
+
+        // X under Y and Y under X in one batch -> would form a 2-node cycle.
+        var result = _controller.Order(new ReorderFoldersRequest(new()
+        {
+            new FolderOrderItem(x.Id, y.Id, 0),
+            new FolderOrderItem(y.Id, x.Id, 0),
+        }));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        using var verify = _factory.CreateSession();
+        Assert.Null(verify.GetObjectByKey<Folder>(x.Id)!.ParentFolder);
+        Assert.Null(verify.GetObjectByKey<Folder>(y.Id)!.ParentFolder);
+    }
+
+    [Fact]
     public void Order_EmptyItems_Returns400()
     {
         Assert.IsType<BadRequestObjectResult>(
