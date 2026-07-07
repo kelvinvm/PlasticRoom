@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 vi.mock('../api/client', () => ({
   updateFolder: vi.fn().mockResolvedValue({}),
@@ -77,6 +77,7 @@ describe('Sidebar', () => {
     fireEvent.change(input, { target: { value: 'Minis' } })
     fireEvent.keyDown(input, { key: 'Enter' })
     expect(updateFolder).toHaveBeenCalledWith(1, { name: 'Minis' })
+    expect(updateFolder).toHaveBeenCalledTimes(1)
   })
 
   it('does not open a context menu on a system (collections) folder', () => {
@@ -87,10 +88,13 @@ describe('Sidebar', () => {
 
   it('deletes a folder after confirmation', async () => {
     const reloadFolders = vi.fn()
-    render(<Sidebar folders={folders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={reloadFolders} reloadFiles={vi.fn()} />)
+    const reloadFiles = vi.fn()
+    render(<Sidebar folders={folders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={reloadFolders} reloadFiles={reloadFiles} />)
     fireEvent.contextMenu(screen.getByText('Miniatures'))
     fireEvent.click(screen.getByRole('menuitem', { name: /delete/i }))
     fireEvent.click(screen.getByRole('button', { name: /^delete$/i }))
+    await waitFor(() => expect(reloadFolders).toHaveBeenCalled())
     expect(deleteFolder).toHaveBeenCalledWith(1)
+    expect(reloadFiles).toHaveBeenCalled()
   })
 })

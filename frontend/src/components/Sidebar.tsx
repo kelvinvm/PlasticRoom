@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { Folder } from '../api/types'
 import { buildFolderTree, type FolderNode } from '../lib/folderTree'
 import { deleteFolder, updateFolder } from '../api/client'
@@ -35,8 +35,11 @@ function FolderRow({
   const [menuOpen, setMenuOpen] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [draft, setDraft] = useState(node.name)
+  const committedRef = useRef(false)
 
   const commitRename = () => {
+    if (committedRef.current) return
+    committedRef.current = true
     const trimmed = draft.trim()
     if (trimmed && trimmed !== node.name) onRename(node.id, trimmed)
     setRenaming(false)
@@ -94,7 +97,7 @@ function FolderRow({
               type="button"
               role="menuitem"
               className={styles.menuItem}
-              onClick={() => { setMenuOpen(false); setDraft(node.name); setRenaming(true) }}
+              onClick={() => { setMenuOpen(false); setDraft(node.name); committedRef.current = false; setRenaming(true) }}
             >
               Rename
             </button>
