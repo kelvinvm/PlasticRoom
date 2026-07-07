@@ -36,6 +36,13 @@ export interface Folder {
   coverImageFileId: number | null
   sortOrder: number
   isSystem: boolean
+  fileCount?: number
+}
+
+export interface FolderOrderItem {
+  id: number
+  parentId: number | null
+  sortOrder: number
 }
 
 export interface Tag {

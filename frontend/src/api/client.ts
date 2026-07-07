@@ -1,4 +1,4 @@
-import type { Folder, ModelFile, Tag, UploadFileInput } from './types'
+import type { Folder, FolderOrderItem, ModelFile, Tag, UploadFileInput } from './types'
 
 async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url)
@@ -119,4 +119,35 @@ export async function batchAssign(
     body: JSON.stringify({ fileIds, addFolderIds, addTagIds }),
   })
   return parseJsonOrThrow<ModelFile[]>(res, url)
+}
+
+export async function reorderFolders(items: FolderOrderItem[]): Promise<Folder[]> {
+  const url = '/api/folders/order'
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items }),
+  })
+  return parseJsonOrThrow<Folder[]>(res, url)
+}
+
+export async function updateFolder(
+  id: number,
+  patch: { name?: string; parentId?: number | null },
+): Promise<Folder> {
+  const url = `/api/folders/${id}`
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  })
+  return parseJsonOrThrow<Folder>(res, url)
+}
+
+export async function deleteFolder(id: number): Promise<void> {
+  const url = `/api/folders/${id}`
+  const res = await fetch(url, { method: 'DELETE' })
+  if (!res.ok) {
+    throw new Error(`Request to ${url} failed with status ${res.status}`)
+  }
 }
