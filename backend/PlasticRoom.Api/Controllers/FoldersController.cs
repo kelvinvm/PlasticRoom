@@ -81,6 +81,11 @@ public class FoldersController : ControllerBase
                 return NotFound(new { error = $"Parent folder {parentId} not found" });
             }
 
+            if (WouldCreateCycle(folder, parent))
+            {
+                return BadRequest(new { error = "A folder cannot be moved under itself or its own descendant" });
+            }
+
             folder.ParentFolder = parent;
         }
 
@@ -142,6 +147,20 @@ public class FoldersController : ControllerBase
         }
 
         folder.Delete();
+    }
+
+    // True if making newParent the parent of folder would create a cycle,
+    // i.e. newParent is folder itself or one of folder's descendants.
+    private static bool WouldCreateCycle(Folder folder, Folder newParent)
+    {
+        for (Folder? p = newParent; p is not null; p = p.ParentFolder)
+        {
+            if (p.Oid == folder.Oid)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static FolderDto ToDto(Folder folder) => new(

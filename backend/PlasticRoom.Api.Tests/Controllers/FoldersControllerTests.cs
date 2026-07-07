@@ -136,6 +136,35 @@ public class FoldersControllerTests : IDisposable
         Assert.Equal(1, folders.Single(f => f.Id == child.Id).FileCount);
     }
 
+    [Fact]
+    public void Update_RejectsReparentingIntoOwnDescendant()
+    {
+        var parent = (FolderDto)Assert.IsType<CreatedAtActionResult>(
+            _controller.Create(new CreateFolderRequest("Parent", null, null))).Value!;
+        var child = (FolderDto)Assert.IsType<CreatedAtActionResult>(
+            _controller.Create(new CreateFolderRequest("Child", parent.Id, null))).Value!;
+
+        // Try to move Parent under its own Child -> cycle.
+        var result = _controller.Update(parent.Id, new UpdateFolderRequest(null, child.Id, null, null, null));
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal(400, badRequest.StatusCode);
+    }
+
+    [Fact]
+    public void Update_AllowsLegalReparent()
+    {
+        var a = (FolderDto)Assert.IsType<CreatedAtActionResult>(
+            _controller.Create(new CreateFolderRequest("A", null, null))).Value!;
+        var b = (FolderDto)Assert.IsType<CreatedAtActionResult>(
+            _controller.Create(new CreateFolderRequest("B", null, null))).Value!;
+
+        var result = _controller.Update(a.Id, new UpdateFolderRequest(null, b.Id, null, null, null));
+        var updated = Assert.IsType<FolderDto>(Assert.IsType<OkObjectResult>(result).Value);
+
+        Assert.Equal(b.Id, updated.ParentId);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_tempDir))
