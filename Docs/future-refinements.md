@@ -146,8 +146,10 @@ menu-dismissal changes. The remaining test-infra item stays open.
   `aria-describedby` on the dialog.
 - ~~**Re-nest doesn't `reloadFiles()`.**~~ Done — `commitMove` reloads files as well as
   folders.
-- **`handleDrop` before/after zone detection is only human-verified.** (Still open.) jsdom's
-  `getBoundingClientRect()` returns a zero rect, so the RTL tests exercise only the `onto`
-  and root-drop paths; the `before`/`after` zone thresholds and insertion-line rendering are
-  covered by the Task 10 `resolveDropPosition` unit tests + the in-browser walkthrough, not
-  by a Sidebar-level test. If jsdom rect mocking is added later, wire the two zone branches.
+- ~~**`handleDrop` before/after zone detection is only human-verified.**~~ Done
+  (2026-07-12) — added Sidebar-level tests for the `before`/`after` zones. jsdom has no
+  `DragEvent` (testing-library falls back to a plain `Event` that drops `clientY`) and
+  `getBoundingClientRect()` returns a zero rect, so the tests mock the row's rect and set
+  `clientY` on the event by hand to hit the top/bottom zone thresholds. The two assertions
+  keep Gamma at root with distinct sort orders (0 vs 1), proving the branch actually fired
+  rather than falling back to `onto`.

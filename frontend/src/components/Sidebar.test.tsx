@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { createEvent, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('../api/client', () => ({
   updateFolder: vi.fn().mockResolvedValue({}),
@@ -138,6 +138,27 @@ function rowOf(name: string): HTMLElement {
   return screen.getByText(name).closest('[draggable="true"]') as HTMLElement
 }
 
+// jsdom has no DragEvent (testing-library falls back to a plain Event that drops
+// clientY) and getBoundingClientRect returns a zero rect, so zoneFromEvent would
+// always resolve to 'onto'. Mock the row's rect and set clientY on the event by hand
+// to exercise the before/after zone thresholds (top 25% / bottom 25% of a 40px row).
+function fireZonedDrop(target: HTMLElement, zone: 'before' | 'after') {
+  const rect = { top: 100, bottom: 140, height: 40, width: 0, left: 0, right: 0, x: 0, y: 100, toJSON() {} }
+  vi.spyOn(target, 'getBoundingClientRect').mockReturnValue(rect as DOMRect)
+  const clientY = zone === 'before' ? 105 : 135 // offset 5 (<10) → before; 35 (>30) → after
+  for (const type of ['dragOver', 'drop'] as const) {
+    const event = createEvent[type](target)
+    Object.defineProperty(event, 'clientY', { value: clientY })
+    fireEvent(target, event)
+  }
+}
+
+const threeRoots: Folder[] = [
+  folder(1, 'Alpha', null, false, 0),
+  folder(2, 'Beta', null, false, 0),
+  folder(3, 'Gamma', null, false, 0),
+]
+
 describe('Sidebar drag-and-drop wiring', () => {
   it('dropping one library folder onto another persists a move and reloads', async () => {
     const reloadFolders = vi.fn()
@@ -189,5 +210,32 @@ describe('Sidebar drag-and-drop wiring', () => {
   it('a system (collections) row is not draggable', () => {
     render(<Sidebar folders={dndFolders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={vi.fn()} reloadFiles={vi.fn()} />)
     expect(screen.getByText('Favorites').closest('[draggable]')).toHaveAttribute('draggable', 'false')
+  })
+
+  it('dropping in the top zone re-orders the folder before the target', async () => {
+    const reloadFolders = vi.fn()
+    render(<Sidebar folders={threeRoots} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={reloadFolders} reloadFiles={vi.fn()} />)
+    fireEvent.dragStart(rowOf('Gamma'))
+    fireZonedDrop(rowOf('Alpha'), 'before')
+    await waitFor(() => expect(reorderFolders).toHaveBeenCalled())
+    // 'before' keeps Gamma at root (parentId null) and slots it ahead of Alpha (sortOrder 0),
+    // distinguishing it from an 'onto' drop, which would re-parent Gamma under Alpha.
+    expect(reorderFolders).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.objectContaining({ id: 3, parentId: null, sortOrder: 0 })]),
+    )
+    expect(reloadFolders).toHaveBeenCalled()
+  })
+
+  it('dropping in the bottom zone re-orders the folder after the target', async () => {
+    const reloadFolders = vi.fn()
+    render(<Sidebar folders={threeRoots} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={reloadFolders} reloadFiles={vi.fn()} />)
+    fireEvent.dragStart(rowOf('Gamma'))
+    fireZonedDrop(rowOf('Alpha'), 'after')
+    await waitFor(() => expect(reorderFolders).toHaveBeenCalled())
+    // 'after' keeps Gamma at root and slots it just behind Alpha (index 1).
+    expect(reorderFolders).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.objectContaining({ id: 3, parentId: null, sortOrder: 1 })]),
+    )
+    expect(reloadFolders).toHaveBeenCalled()
   })
 })
