@@ -153,3 +153,26 @@ menu-dismissal changes. The remaining test-infra item stays open.
   `clientY` on the event by hand to hit the top/bottom zone thresholds. The two assertions
   keep Gamma at root with distinct sort orders (0 vs 1), proving the branch actually fired
   rather than falling back to `onto`.
+
+## 8. Tag management (rename / recolor / delete)
+
+Tags can currently only be *created* (`POST /api/tags`, inline during import or in the
+batch panel). There's no way to rename a tag, change its color, or delete one. Now that
+the Sidebar has a first-class **Tags** section (Collections + Tags model, merged 2026-07-12),
+that's the natural home for management. Explicitly a non-goal of that spec.
+
+- **Backend:** `TagsController` only has `Create` today. Add `PUT /api/tags/{id}`
+  (rename + `ColorKey`) and `DELETE /api/tags/{id}`. Delete must remove the tag's
+  `FileTag` join rows then `PurgeDeletedObjects()` (XPO `Session` rules — no
+  `CommitTransaction()` without `BeginTransaction()`; purge after deletes — see project
+  memory). The `Tag` entity is just `Name` + `ColorKey`.
+- **Frontend:** reuse the Sidebar folder patterns — right-click context menu
+  (Rename/Delete) + inline rename + `ConfirmDialog` — on the Tags rows
+  (`frontend/src/components/Sidebar.tsx`). Add `updateTag`/`deleteTag` to
+  `frontend/src/api/client.ts` and a `reload()` to `useTags` (it has none yet).
+  Color editing needs a small picker; today tag colors just cycle orange/green/red/brass
+  via `tagColor` in `frontend/src/lib/format.ts` — decide the palette during brainstorming.
+- **Filter cleanup on delete:** `LibraryView.selectedTagIds` must drop a removed tag id
+  so the grid doesn't keep filtering on a ghost tag (and its toolbar chip disappears).
+- **Optional (larger):** merge two tags into one — reassigns every `FileTag` from the
+  losing tag to the winner, then deletes the loser.
