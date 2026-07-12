@@ -22,6 +22,9 @@ export function LibraryView({
   onOpenFile: (fileId: number, fromFolder: { id: number; name: string } | null) => void
 }) {
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null)
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
+  const toggleTag = (id: number) =>
+    setSelectedTagIds((cur) => (cur.includes(id) ? cur.filter((t) => t !== id) : [...cur, id]))
   const [selection, setSelection] = useState<Selection>(emptySelection)
   const [pendingDeleteFile, setPendingDeleteFile] = useState<ModelFile | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -30,7 +33,11 @@ export function LibraryView({
 
   const { folders, reload: reloadFolders } = useFolders()
   const { tags } = useTags()
-  const { files, loading, error, reload: reloadFiles } = useFiles(selectedFolderId, [], debouncedSearch)
+  const { files, loading, error, reload: reloadFiles } = useFiles(selectedFolderId, selectedTagIds, debouncedSearch)
+
+  const activeTags = selectedTagIds
+    .map((id) => tags.find((t) => t.id === id))
+    .filter((t): t is (typeof tags)[number] => t !== undefined)
 
   // Esc clears the current selection while one is active.
   useEffect(() => {
@@ -111,6 +118,9 @@ export function LibraryView({
         onImport={onImport}
         reloadFolders={reloadFolders}
         reloadFiles={reloadFiles}
+        tags={tags}
+        selectedTagIds={selectedTagIds}
+        onToggleTag={toggleTag}
       />
       <main className={styles.center}>
         <LibraryToolbar
@@ -119,6 +129,8 @@ export function LibraryView({
           selectedCount={selection.ids.size}
           search={search}
           onSearchChange={setSearch}
+          activeTags={activeTags}
+          onRemoveTag={toggleTag}
         />
         <div
           className={styles.centerBody}

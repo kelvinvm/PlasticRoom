@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DragEvent } from 'react'
-import type { Folder, FolderOrderItem } from '../api/types'
+import type { Folder, FolderOrderItem, Tag } from '../api/types'
 import { buildFolderTree, type FolderNode } from '../lib/folderTree'
 import { deleteFolder, reorderFolders, updateFolder } from '../api/client'
 import { computeFolderMove, resolveDropPosition, resolveRootDrop, type DropZone } from '../lib/folderMove'
+import { tagColor } from '../lib/format'
 import { ConfirmDialog } from './ConfirmDialog'
 import styles from './Sidebar.module.css'
 
@@ -14,6 +15,9 @@ interface SidebarProps {
   onImport: () => void
   reloadFolders: () => void
   reloadFiles: () => void
+  tags: Tag[]
+  selectedTagIds: number[]
+  onToggleTag: (id: number) => void
 }
 
 interface RowProps {
@@ -177,6 +181,7 @@ function FolderRow({
 
 export function Sidebar({
   folders, selectedFolderId, onSelectFolder, onImport, reloadFolders, reloadFiles,
+  tags, selectedTagIds, onToggleTag,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set())
   const [pendingDelete, setPendingDelete] = useState<FolderNode | null>(null)
@@ -327,6 +332,23 @@ export function Sidebar({
           onDragEndRow={() => { setDragId(null); setDropTarget(null) }}
         />
       ))}
+
+      <div className={styles.sectionLabel}>Tags</div>
+      {tags.map((tag) => {
+        const active = selectedTagIds.includes(tag.id)
+        return (
+          <button
+            key={tag.id}
+            type="button"
+            className={`${styles.tagRow} ${active ? styles.tagRowActive : ''}`}
+            aria-pressed={active}
+            onClick={() => onToggleTag(tag.id)}
+          >
+            <span className={styles.tagDot} style={{ background: tagColor(tag.colorKey) }} aria-hidden="true" />
+            <span className={styles.rowLabel}>{tag.name}</span>
+          </button>
+        )
+      })}
 
       {actionError && <div role="alert" className={styles.actionError}>{actionError}</div>}
 
