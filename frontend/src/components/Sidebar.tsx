@@ -4,6 +4,7 @@ import type { Folder, FolderOrderItem } from '../api/types'
 import { buildFolderTree, type FolderNode } from '../lib/folderTree'
 import { deleteFolder, reorderFolders, updateFolder } from '../api/client'
 import { computeFolderMove, resolveDropPosition, resolveRootDrop, type DropZone } from '../lib/folderMove'
+import { ConfirmDialog } from './ConfirmDialog'
 import styles from './Sidebar.module.css'
 
 interface SidebarProps {
@@ -356,28 +357,12 @@ export function Sidebar({
       {actionError && <div role="alert" className={styles.actionError}>{actionError}</div>}
 
       {pendingDelete && (
-        <div className={styles.dialogBackdrop} onClick={() => setPendingDelete(null)}>
-          <div
-            className={styles.dialog}
-            role="dialog"
-            aria-modal="true"
-            aria-describedby="delete-folder-desc"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p id="delete-folder-desc" className={styles.dialogBody}>
-              Delete “{pendingDelete.name}” and its subfolders? Files stay in your library but
-              lose this folder assignment.
-            </p>
-            <div className={styles.dialogActions}>
-              <button type="button" className={styles.dialogCancel} onClick={() => setPendingDelete(null)}>
-                Cancel
-              </button>
-              <button type="button" className={styles.dialogDelete} onClick={confirmDelete}>
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          body={<>Delete “{pendingDelete.name}” and its subfolders? Files stay in your library but lose this folder assignment.</>}
+          danger
+          onConfirm={confirmDelete}
+          onCancel={() => setPendingDelete(null)}
+        />
       )}
     </nav>
   )

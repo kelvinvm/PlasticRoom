@@ -17,6 +17,33 @@
   }
 }
 
+.cardWrap {
+  position: relative;
+}
+
+.kebab {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: rgba(21, 18, 16, 0.72);
+  color: var(--text-primary);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.kebab:hover {
+  background: var(--bg-surface);
+}
+
 .card {
   position: relative;
   display: flex;

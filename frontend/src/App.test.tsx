@@ -82,7 +82,7 @@ describe('App', () => {
 
   it('opens the detail layer when a file is opened and closes on back', async () => {
     render(<App />)
-    const card = await screen.findByRole('button', { name: /\.stl|\.3mf/i })
+    const card = (await screen.findByText('Dragon.stl')).closest('button') as HTMLElement
     fireEvent.doubleClick(card)
     expect(screen.getByTestId('detail-view')).toBeInTheDocument()
     fireEvent.click(screen.getByText('close-detail'))

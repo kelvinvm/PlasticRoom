@@ -151,3 +151,11 @@ export async function deleteFolder(id: number): Promise<void> {
     throw new Error(`Request to ${url} failed with status ${res.status}`)
   }
 }
+
+export async function deleteFile(id: number): Promise<void> {
+  const url = `/api/files/${id}`
+  const res = await fetch(url, { method: 'DELETE' })
+  if (!res.ok) {
+    throw new Error(`Request to ${url} failed with status ${res.status}`)
+  }
+}

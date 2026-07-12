@@ -9,6 +9,9 @@ import { useTags } from '../hooks/useTags'
 import { useFiles } from '../hooks/useFiles'
 import { useDebouncedValue } from '../hooks/useDebouncedValue'
 import { nextSelection, emptySelection, type Selection } from '../lib/gridSelection'
+import { deleteFile } from '../api/client'
+import { ConfirmDialog } from '../components/ConfirmDialog'
+import type { ModelFile } from '../api/types'
 import styles from './LibraryView.module.css'
 
 export function LibraryView({
@@ -20,6 +23,8 @@ export function LibraryView({
 }) {
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null)
   const [selection, setSelection] = useState<Selection>(emptySelection)
+  const [pendingDeleteFile, setPendingDeleteFile] = useState<ModelFile | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebouncedValue(search, 250)
 
@@ -54,6 +59,25 @@ export function LibraryView({
           return f ? { id: f.id, name: f.name } : null
         })()
 
+  const handleConfirmDelete = async () => {
+    if (!pendingDeleteFile) return
+    const id = pendingDeleteFile.id
+    setDeleteError(null)
+    try {
+      await deleteFile(id)
+      setPendingDeleteFile(null)
+      setSelection((cur) => {
+        if (!cur.ids.has(id)) return cur
+        const ids = new Set(cur.ids)
+        ids.delete(id)
+        return { ids, anchorId: cur.anchorId === id ? null : cur.anchorId }
+      })
+      reloadFiles()
+    } catch {
+      setDeleteError('Could not delete file.')
+    }
+  }
+
   let center
   if (loading) {
     center = <div className={styles.status}>Loading…</div>
@@ -73,6 +97,7 @@ export function LibraryView({
         selectedFileIds={selection.ids}
         onSelectFile={(id, mods) => setSelection((cur) => nextSelection(cur, files, id, mods))}
         onOpenFile={(id) => onOpenFile(id, activeFolder)}
+        onRequestDelete={setPendingDeleteFile}
       />
     )
   }
@@ -118,6 +143,15 @@ export function LibraryView({
           tags={tags}
           onAssignmentsSaved={reloadFiles}
           onFolderCreated={reloadFolders}
+        />
+      )}
+      {pendingDeleteFile && (
+        <ConfirmDialog
+          body={<>Delete “{pendingDeleteFile.name}”? This permanently removes the file.</>}
+          danger
+          error={deleteError}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => { setPendingDeleteFile(null); setDeleteError(null) }}
         />
       )}
     </div>

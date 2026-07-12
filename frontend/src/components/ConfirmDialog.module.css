@@ -1,0 +1,35 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+}
+
+.dialog {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 20px;
+  max-width: 340px;
+}
+
+.body { color: var(--text-primary); font-size: 13px; margin: 0 0 16px; }
+.error { color: var(--error); font-size: 11px; margin: 0 0 12px; }
+.actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+.cancel,
+.confirm,
+.confirmDanger {
+  border-radius: 7px;
+  padding: 7px 14px;
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid var(--border);
+}
+
+.cancel { background: transparent; color: var(--text-primary); }
+.confirm { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.confirmDanger { background: var(--error); color: #fff; border-color: var(--error); }
