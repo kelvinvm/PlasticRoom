@@ -73,6 +73,7 @@ export function LibraryView({
         selectedFileIds={selection.ids}
         onSelectFile={(id, mods) => setSelection((cur) => nextSelection(cur, files, id, mods))}
         onOpenFile={(id) => onOpenFile(id, activeFolder)}
+        onRequestDelete={() => {}}
       />
     )
   }
