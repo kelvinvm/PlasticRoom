@@ -9,7 +9,6 @@ const folder = (id: number, name: string, parentId: number | null, sortOrder = 0
   description: null,
   coverImageFileId: null,
   sortOrder,
-  isSystem: false,
 })
 
 describe('buildFolderTree', () => {

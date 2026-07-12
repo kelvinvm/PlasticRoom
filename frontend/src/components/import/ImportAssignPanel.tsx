@@ -35,10 +35,10 @@ export function ImportAssignPanel(props: Props) {
 
   return (
     <aside className={styles.panel}>
-      <div className={styles.label}>ADD ALL TO FOLDER</div>
+      <div className={styles.label}>ADD ALL TO COLLECTION</div>
       <input
         className={styles.input}
-        placeholder="Search or pick a folder…"
+        placeholder="Search or pick a collection…"
         value={folderQuery}
         onChange={(e) => setFolderQuery(e.target.value)}
       />

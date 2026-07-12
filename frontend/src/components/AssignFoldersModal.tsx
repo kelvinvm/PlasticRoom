@@ -34,9 +34,7 @@ export function AssignFoldersModal({
   const [error, setError] = useState<string | null>(null)
   const [thumbFailed, setThumbFailed] = useState(false)
 
-  const tree = buildFolderTree(localFolders)
-  const collectionRoots = tree.filter((n) => n.isSystem)
-  const libraryRoots = tree.filter((n) => !n.isSystem)
+  const roots = buildFolderTree(localFolders)
 
   function toggle(id: number) {
     setChecked((prev) => {
@@ -87,7 +85,7 @@ export function AssignFoldersModal({
       setShowNewFolder(false)
       onFolderCreated(created)
     } catch {
-      setError('Couldn’t create folder')
+      setError('Couldn’t create collection')
     } finally {
       setBusy(false)
     }
@@ -141,7 +139,7 @@ export function AssignFoldersModal({
         className={styles.dialog}
         role="dialog"
         aria-modal="true"
-        aria-label={`Assign folders for ${file.name}`}
+        aria-label={`Assign collections for ${file.name}`}
         onKeyDown={onDialogKeyDown}
       >
         <header className={styles.header}>
@@ -159,18 +157,7 @@ export function AssignFoldersModal({
         </header>
 
         <div className={styles.body}>
-          {collectionRoots.length > 0 && (
-            <section aria-label="Collections">
-              <div className={styles.groupLabel}>COLLECTIONS</div>
-              {collectionRoots.map((n) => renderNode(n, 0))}
-            </section>
-          )}
-          {libraryRoots.length > 0 && (
-            <section aria-label="Library">
-              <div className={styles.groupLabel}>LIBRARY</div>
-              {libraryRoots.map((n) => renderNode(n, 0))}
-            </section>
-          )}
+          {roots.map((n) => renderNode(n, 0))}
         </div>
 
         {error && (
@@ -185,7 +172,7 @@ export function AssignFoldersModal({
               <>
                 <input
                   className={styles.newFolderInput}
-                  aria-label="New folder name"
+                  aria-label="New collection name"
                   value={newFolderName}
                   onChange={(e) => setNewFolderName(e.target.value)}
                   onKeyDown={(e) => {
@@ -198,7 +185,7 @@ export function AssignFoldersModal({
               </>
             ) : (
               <button type="button" className={styles.textButton} onClick={() => setShowNewFolder(true)}>
-                + New folder
+                + New collection
               </button>
             )}
           </div>

@@ -5,7 +5,7 @@ import { LibraryView } from './LibraryView'
 import type { Folder, ModelFile, Tag } from '../api/types'
 
 const folders: Folder[] = [
-  { id: 1, name: 'Miniatures', parentId: null, description: null, coverImageFileId: null, sortOrder: 0, isSystem: false },
+  { id: 1, name: 'Miniatures', parentId: null, description: null, coverImageFileId: null, sortOrder: 0 },
 ]
 const tags: Tag[] = []
 const dragon: ModelFile = {

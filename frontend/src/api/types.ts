@@ -35,7 +35,6 @@ export interface Folder {
   description: string | null
   coverImageFileId: number | null
   sortOrder: number
-  isSystem: boolean
   fileCount?: number
 }
 

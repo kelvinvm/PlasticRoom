@@ -5,8 +5,8 @@ import * as client from '../api/client'
 import type { Folder, Tag } from '../api/types'
 
 const folders: Folder[] = [
-  { id: 1, name: 'Terrain', parentId: null, description: null, coverImageFileId: null, sortOrder: 0, isSystem: false },
-  { id: 2, name: 'Printed', parentId: null, description: null, coverImageFileId: null, sortOrder: 1, isSystem: true },
+  { id: 1, name: 'Terrain', parentId: null, description: null, coverImageFileId: null, sortOrder: 0 },
+  { id: 2, name: 'Printed', parentId: null, description: null, coverImageFileId: null, sortOrder: 1 },
 ]
 const tags: Tag[] = [{ id: 5, name: 'Resin', colorKey: 'brass' }]
 
@@ -33,7 +33,7 @@ describe('BatchAssignPanel', () => {
 
   it('filters folders by the search box', () => {
     setup()
-    fireEvent.change(screen.getByLabelText('Search folders'), { target: { value: 'terr' } })
+    fireEvent.change(screen.getByLabelText('Search collections'), { target: { value: 'terr' } })
     expect(screen.getByRole('checkbox', { name: 'Terrain' })).toBeInTheDocument()
     expect(screen.queryByRole('checkbox', { name: 'Printed' })).not.toBeInTheDocument()
   })

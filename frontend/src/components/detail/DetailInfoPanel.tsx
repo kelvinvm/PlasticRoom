@@ -117,7 +117,7 @@ export function DetailInfoPanel({
       </section>
 
       <section className={styles.section}>
-        <div className={styles.sectionLabel}>IN FOLDERS / COLLECTIONS</div>
+        <div className={styles.sectionLabel}>COLLECTIONS</div>
         <div className={styles.chips}>
           {fileFolders.map((folder) => (
             <span key={folder.id} className={styles.chip}>

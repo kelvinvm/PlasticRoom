@@ -5,7 +5,7 @@ import { ImportView } from './ImportView'
 import type { UseImportStagingDeps } from '../hooks/useImportStaging'
 import type { ThumbnailGenerator } from '../lib/thumbnail'
 
-const folders = [{ id: 3, name: 'To Print', parentId: null, description: null, coverImageFileId: null, sortOrder: 0, isSystem: true }]
+const folders = [{ id: 3, name: 'To Print', parentId: null, description: null, coverImageFileId: null, sortOrder: 0 }]
 const tags = [{ id: 7, name: 'Resin', colorKey: 'orange' }]
 
 const generate: ThumbnailGenerator = async () => ({

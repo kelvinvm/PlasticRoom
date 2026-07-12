@@ -14,15 +14,15 @@ beforeEach(() => {
 })
 
 const folder = (
-  id: number, name: string, parentId: number | null, isSystem = false, fileCount = 0,
+  id: number, name: string, parentId: number | null, fileCount = 0,
 ): Folder => ({
-  id, name, parentId, description: null, coverImageFileId: null, sortOrder: 0, isSystem, fileCount,
+  id, name, parentId, description: null, coverImageFileId: null, sortOrder: 0, fileCount,
 })
 
 const folders: Folder[] = [
-  folder(1, 'Miniatures', null, false, 3),
-  folder(2, 'DnD Campaign', 1, false, 1),
-  folder(3, 'Favorites', null, true),
+  folder(1, 'Miniatures', null, 3),
+  folder(2, 'DnD Campaign', 1, 1),
+  folder(3, 'Favorites', null),
 ]
 
 describe('Sidebar', () => {
@@ -108,12 +108,6 @@ describe('Sidebar', () => {
     expect(screen.getAllByRole('menuitem', { name: /rename/i })).toHaveLength(1)
   })
 
-  it('does not open a context menu on a system (collections) folder', () => {
-    render(<Sidebar folders={folders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={vi.fn()} reloadFiles={vi.fn()} />)
-    fireEvent.contextMenu(screen.getByText('Favorites'))
-    expect(screen.queryByRole('menuitem', { name: /rename/i })).not.toBeInTheDocument()
-  })
-
   it('deletes a folder after confirmation', async () => {
     const reloadFolders = vi.fn()
     const reloadFiles = vi.fn()
@@ -128,9 +122,9 @@ describe('Sidebar', () => {
 })
 
 const dndFolders: Folder[] = [
-  folder(1, 'Alpha', null, false, 0),
-  folder(2, 'Beta', null, false, 0),
-  folder(3, 'Favorites', null, true),
+  folder(1, 'Alpha', null, 0),
+  folder(2, 'Beta', null, 0),
+  folder(3, 'Favorites', null),
 ]
 
 function rowOf(name: string): HTMLElement {
@@ -154,9 +148,9 @@ function fireZonedDrop(target: HTMLElement, zone: 'before' | 'after') {
 }
 
 const threeRoots: Folder[] = [
-  folder(1, 'Alpha', null, false, 0),
-  folder(2, 'Beta', null, false, 0),
-  folder(3, 'Gamma', null, false, 0),
+  folder(1, 'Alpha', null, 0),
+  folder(2, 'Beta', null, 0),
+  folder(3, 'Gamma', null, 0),
 ]
 
 describe('Sidebar drag-and-drop wiring', () => {
@@ -199,17 +193,12 @@ describe('Sidebar drag-and-drop wiring', () => {
 
   it('dropping onto "All Files" un-nests to root', async () => {
     // Beta is nested under Alpha; dropping it on All Files moves it to root.
-    const nested: Folder[] = [folder(1, 'Alpha', null, false, 0), folder(2, 'Beta', 1, false, 0)]
+    const nested: Folder[] = [folder(1, 'Alpha', null, 0), folder(2, 'Beta', 1, 0)]
     const reloadFolders = vi.fn()
     render(<Sidebar folders={nested} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={reloadFolders} reloadFiles={vi.fn()} />)
     fireEvent.dragStart(rowOf('Beta'))
     fireEvent.drop(screen.getByText('All Files').closest('div') as HTMLElement)
     await waitFor(() => expect(reorderFolders).toHaveBeenCalled())
-  })
-
-  it('a system (collections) row is not draggable', () => {
-    render(<Sidebar folders={dndFolders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={vi.fn()} reloadFiles={vi.fn()} />)
-    expect(screen.getByText('Favorites').closest('[draggable]')).toHaveAttribute('draggable', 'false')
   })
 
   it('dropping in the top zone re-orders the folder before the target', async () => {
