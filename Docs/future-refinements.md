@@ -126,31 +126,27 @@ Non-blocking nits logged during the Phase 8 folder-management reviews. All small
 touch when the Sidebar is next edited (`frontend/src/components/Sidebar.tsx` /
 `Sidebar.module.css`).
 
-- **Extract a shared `commitMove(items)` helper.** `handleDrop` and `handleRootDrop`
-  duplicate the `computeFolderMove → if empty return → setActionError(null) → try{ await
-  reorderFolders; reloadFolders } catch{ setActionError }` tail. DRY them so the two drop
-  paths can't drift.
-- **Dead `draggable` RowProp.** Threaded through `RowProps` and forwarded in the recursion
-  but never consumed — the row element uses the locally-computed `editable = !node.isSystem`.
-  Also `onDragStart`'s `e.stopPropagation()` is a no-op (rows are rendered as siblings, not
-  nested DOM). Remove both to avoid implying behavior that isn't there.
-- **Stale `actionError` after a no-op drop.** The `source===null` / `!pos` /
-  `items.length===0` early returns run before `setActionError(null)`, so a prior "Could not
-  move folder." message lingers across a later no-op drop. Clear the error on `dragStart` or
-  hoist `setActionError(null)` above the early returns.
-- **No `onDragLeave` on rows.** The before/after insertion line / onto outline can linger on
-  the last-hovered row while the cursor sits over a bare gap (self-corrects on the next
-  `onDragOver`). Add `onDragLeave` clearing for polish.
-- **Double padding inset.** `.row` (`7px 12px`) wraps `.rowMain` (`6px 8px`), applying
-  horizontal/vertical padding twice — slightly larger inset than intended. Cosmetic.
-- **Context menu dismissal is `onMouseLeave`-only** — no outside-click or Esc dismissal, and
-  each row owns independent `menuOpen` state (multiple menus can be open at once).
-- **Delete confirm dialog a11y.** Has `role="dialog"` + `aria-modal` but no
-  `aria-labelledby`/`aria-describedby` tying it to its body text.
-- **Re-nest doesn't `reloadFiles()`.** The library grid filter is descendant-inclusive, so
-  re-nesting a populated folder under the currently-selected folder leaves the grid stale
-  until the next action. (Rename/reorder correctly reload folders; delete reloads both.)
-- **`handleDrop` before/after zone detection is only human-verified.** jsdom's
+**Resolved 2026-07-12** (`phase-8-folder-management`): the eight items below were
+addressed in one pass, with new Sidebar tests for the two behavioral fixes and the
+menu-dismissal changes. The remaining test-infra item stays open.
+
+- ~~**Extract a shared `commitMove(items)` helper.**~~ Done — `handleDrop` and
+  `handleRootDrop` now compute their items and delegate to one `commitMove` (which also
+  covers the `reloadFiles()` fix below).
+- ~~**Dead `draggable` RowProp.**~~ Done — removed the unused prop from `RowProps`, the
+  recursion, and both call sites; dropped the no-op `e.stopPropagation()` in `onDragStart`.
+- ~~**Stale `actionError` after a no-op drop.**~~ Done — `onDragStartRow` clears the error
+  when a new drag begins.
+- ~~**No `onDragLeave` on rows.**~~ Done — rows clear their drop indicator on
+  `onDragLeave` (guarded against inner-child flicker via a `relatedTarget` containment check).
+- ~~**Double padding inset.**~~ Done — `.rowMain` padding zeroed so `.row` owns the inset.
+- ~~**Context menu dismissal is `onMouseLeave`-only.**~~ Done — `openMenuId` lifted to the
+  Sidebar (single menu open at a time); dismisses on outside click and Escape.
+- ~~**Delete confirm dialog a11y.**~~ Done — body paragraph given an id, tied via
+  `aria-describedby` on the dialog.
+- ~~**Re-nest doesn't `reloadFiles()`.**~~ Done — `commitMove` reloads files as well as
+  folders.
+- **`handleDrop` before/after zone detection is only human-verified.** (Still open.) jsdom's
   `getBoundingClientRect()` returns a zero rect, so the RTL tests exercise only the `onto`
   and root-drop paths; the `before`/`after` zone thresholds and insertion-line rendering are
   covered by the Task 10 `resolveDropPosition` unit tests + the in-browser walkthrough, not

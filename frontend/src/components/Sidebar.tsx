@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { DragEvent } from 'react'
-import type { Folder } from '../api/types'
+import type { Folder, FolderOrderItem } from '../api/types'
 import { buildFolderTree, type FolderNode } from '../lib/folderTree'
 import { deleteFolder, reorderFolders, updateFolder } from '../api/client'
 import { computeFolderMove, resolveDropPosition, resolveRootDrop, type DropZone } from '../lib/folderMove'
@@ -24,11 +24,14 @@ interface RowProps {
   onToggleCollapse: (id: number) => void
   onRename: (id: number, name: string) => void
   onRequestDelete: (node: FolderNode) => void
-  draggable: boolean
+  openMenuId: number | null
+  onOpenMenu: (id: number) => void
+  onCloseMenu: () => void
   dragId: number | null
   dropTarget: { id: number | 'root'; zone: DropZone } | null
   onDragStartRow: (id: number) => void
   onDragOverRow: (id: number, zone: DropZone) => void
+  onDragLeaveRow: (id: number) => void
   onDropRow: (id: number, zone: DropZone) => void
   onDragEndRow: () => void
 }
@@ -43,14 +46,15 @@ function zoneFromEvent(e: DragEvent<HTMLDivElement>): DropZone {
 
 function FolderRow({
   node, depth, selectedFolderId, onSelectFolder, collapsed, onToggleCollapse, onRename, onRequestDelete,
-  draggable, dragId, dropTarget, onDragStartRow, onDragOverRow, onDropRow, onDragEndRow,
+  openMenuId, onOpenMenu, onCloseMenu,
+  dragId, dropTarget, onDragStartRow, onDragOverRow, onDragLeaveRow, onDropRow, onDragEndRow,
 }: RowProps) {
   const selected = node.id === selectedFolderId
   const hasChildren = node.children.length > 0
   const isCollapsed = collapsed.has(node.id)
   const editable = !node.isSystem
+  const menuOpen = openMenuId === node.id
 
-  const [menuOpen, setMenuOpen] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [draft, setDraft] = useState(node.name)
   const committedRef = useRef(false)
@@ -76,9 +80,10 @@ function FolderRow({
         className={`${styles.row} ${selected ? styles.rowSelected : ''} ${dropClass}`}
         style={{ paddingLeft: 12 + depth * 14 }}
         draggable={editable}
-        onContextMenu={editable ? (e) => { e.preventDefault(); setMenuOpen(true) } : undefined}
-        onDragStart={editable ? (e) => { e.stopPropagation(); onDragStartRow(node.id) } : undefined}
+        onContextMenu={editable ? (e) => { e.preventDefault(); onOpenMenu(node.id) } : undefined}
+        onDragStart={editable ? () => onDragStartRow(node.id) : undefined}
         onDragOver={editable ? (e) => { e.preventDefault(); onDragOverRow(node.id, zoneFromEvent(e)) } : undefined}
+        onDragLeave={editable ? (e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) onDragLeaveRow(node.id) } : undefined}
         onDrop={editable ? (e) => { e.preventDefault(); onDropRow(node.id, zoneFromEvent(e)) } : undefined}
         onDragEnd={editable ? onDragEndRow : undefined}
       >
@@ -122,12 +127,12 @@ function FolderRow({
         )}
 
         {menuOpen && (
-          <div className={styles.menu} role="menu" onMouseLeave={() => setMenuOpen(false)}>
+          <div className={styles.menu} role="menu" onMouseLeave={onCloseMenu}>
             <button
               type="button"
               role="menuitem"
               className={styles.menuItem}
-              onClick={() => { setMenuOpen(false); setDraft(node.name); committedRef.current = false; setRenaming(true) }}
+              onClick={() => { onCloseMenu(); setDraft(node.name); committedRef.current = false; setRenaming(true) }}
             >
               Rename
             </button>
@@ -135,7 +140,7 @@ function FolderRow({
               type="button"
               role="menuitem"
               className={styles.menuItemDanger}
-              onClick={() => { setMenuOpen(false); onRequestDelete(node) }}
+              onClick={() => { onCloseMenu(); onRequestDelete(node) }}
             >
               Delete
             </button>
@@ -153,11 +158,14 @@ function FolderRow({
           onToggleCollapse={onToggleCollapse}
           onRename={onRename}
           onRequestDelete={onRequestDelete}
-          draggable={draggable}
+          openMenuId={openMenuId}
+          onOpenMenu={onOpenMenu}
+          onCloseMenu={onCloseMenu}
           dragId={dragId}
           dropTarget={dropTarget}
           onDragStartRow={onDragStartRow}
           onDragOverRow={onDragOverRow}
+          onDragLeaveRow={onDragLeaveRow}
           onDropRow={onDropRow}
           onDragEndRow={onDragEndRow}
         />
@@ -172,44 +180,59 @@ export function Sidebar({
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set())
   const [pendingDelete, setPendingDelete] = useState<FolderNode | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null)
   const [dragId, setDragId] = useState<number | null>(null)
   const [dropTarget, setDropTarget] = useState<{ id: number | 'root'; zone: DropZone } | null>(null)
 
   const libraryTreeNodes = buildFolderTree(folders.filter((f) => !f.isSystem))
 
-  const handleDrop = async (targetId: number, zone: DropZone) => {
+  // Dismiss an open context menu on outside click or Escape.
+  useEffect(() => {
+    if (openMenuId === null) return
+    const close = () => setOpenMenuId(null)
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpenMenuId(null) }
+    document.addEventListener('click', close)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('click', close)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [openMenuId])
+
+  const commitMove = async (items: FolderOrderItem[]) => {
+    if (items.length === 0) return
+    setActionError(null)
+    try {
+      await reorderFolders(items)
+      reloadFolders()
+      // The grid filter is descendant-inclusive, so a re-nest can change which
+      // files fall under the selected folder — refresh the grid too.
+      reloadFiles()
+    } catch {
+      setActionError('Could not move folder.')
+    }
+  }
+
+  const handleDrop = (targetId: number, zone: DropZone) => {
     const source = dragId
     setDragId(null)
     setDropTarget(null)
     if (source === null) return
     const pos = resolveDropPosition(libraryTreeNodes, source, targetId, zone)
     if (!pos) return
-    const items = computeFolderMove(libraryTreeNodes, source, pos)
-    if (items.length === 0) return
-    setActionError(null)
-    try {
-      await reorderFolders(items)
-      reloadFolders()
-    } catch {
-      setActionError('Could not move folder.')
-    }
+    return commitMove(computeFolderMove(libraryTreeNodes, source, pos))
   }
 
-  const handleRootDrop = async () => {
+  const handleRootDrop = () => {
     const source = dragId
     setDragId(null)
     setDropTarget(null)
     if (source === null) return
-    const items = computeFolderMove(libraryTreeNodes, source, resolveRootDrop(libraryTreeNodes, source))
-    if (items.length === 0) return
-    setActionError(null)
-    try {
-      await reorderFolders(items)
-      reloadFolders()
-    } catch {
-      setActionError('Could not move folder.')
-    }
+    return commitMove(computeFolderMove(libraryTreeNodes, source, resolveRootDrop(libraryTreeNodes, source)))
   }
+
+  const handleDragLeaveRow = (id: number) =>
+    setDropTarget((cur) => (cur?.id === id ? null : cur))
 
   const toggleCollapse = (id: number) =>
     setCollapsed((cur) => {
@@ -292,11 +315,14 @@ export function Sidebar({
           onToggleCollapse={toggleCollapse}
           onRename={handleRename}
           onRequestDelete={setPendingDelete}
-          draggable
+          openMenuId={openMenuId}
+          onOpenMenu={setOpenMenuId}
+          onCloseMenu={() => setOpenMenuId(null)}
           dragId={dragId}
           dropTarget={dropTarget}
-          onDragStartRow={setDragId}
+          onDragStartRow={(id) => { setActionError(null); setDragId(id) }}
           onDragOverRow={(id, zone) => setDropTarget({ id, zone })}
+          onDragLeaveRow={handleDragLeaveRow}
           onDropRow={handleDrop}
           onDragEndRow={() => { setDragId(null); setDropTarget(null) }}
         />
@@ -314,11 +340,14 @@ export function Sidebar({
           onToggleCollapse={toggleCollapse}
           onRename={handleRename}
           onRequestDelete={setPendingDelete}
-          draggable={false}
+          openMenuId={openMenuId}
+          onOpenMenu={setOpenMenuId}
+          onCloseMenu={() => setOpenMenuId(null)}
           dragId={null}
           dropTarget={null}
           onDragStartRow={() => {}}
           onDragOverRow={() => {}}
+          onDragLeaveRow={() => {}}
           onDropRow={() => {}}
           onDragEndRow={() => {}}
         />
@@ -328,8 +357,14 @@ export function Sidebar({
 
       {pendingDelete && (
         <div className={styles.dialogBackdrop} onClick={() => setPendingDelete(null)}>
-          <div className={styles.dialog} role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-            <p className={styles.dialogBody}>
+          <div
+            className={styles.dialog}
+            role="dialog"
+            aria-modal="true"
+            aria-describedby="delete-folder-desc"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p id="delete-folder-desc" className={styles.dialogBody}>
               Delete “{pendingDelete.name}” and its subfolders? Files stay in your library but
               lose this folder assignment.
             </p>

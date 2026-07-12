@@ -84,6 +84,30 @@ describe('Sidebar', () => {
     expect(updateFolder).toHaveBeenCalledTimes(1)
   })
 
+  it('closes the context menu on Escape', () => {
+    render(<Sidebar folders={folders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={vi.fn()} reloadFiles={vi.fn()} />)
+    fireEvent.contextMenu(screen.getByText('Miniatures'))
+    expect(screen.getByRole('menuitem', { name: /rename/i })).toBeInTheDocument()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('menuitem', { name: /rename/i })).not.toBeInTheDocument()
+  })
+
+  it('closes the context menu on an outside click', () => {
+    render(<Sidebar folders={folders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={vi.fn()} reloadFiles={vi.fn()} />)
+    fireEvent.contextMenu(screen.getByText('Miniatures'))
+    expect(screen.getByRole('menuitem', { name: /rename/i })).toBeInTheDocument()
+    fireEvent.click(document.body)
+    expect(screen.queryByRole('menuitem', { name: /rename/i })).not.toBeInTheDocument()
+  })
+
+  it('keeps only one context menu open at a time', () => {
+    render(<Sidebar folders={folders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={vi.fn()} reloadFiles={vi.fn()} />)
+    fireEvent.contextMenu(screen.getByText('Miniatures'))
+    fireEvent.contextMenu(screen.getByText('DnD Campaign'))
+    // Both rows can rename; only the most recently opened menu should be present.
+    expect(screen.getAllByRole('menuitem', { name: /rename/i })).toHaveLength(1)
+  })
+
   it('does not open a context menu on a system (collections) folder', () => {
     render(<Sidebar folders={folders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={vi.fn()} reloadFiles={vi.fn()} />)
     fireEvent.contextMenu(screen.getByText('Favorites'))
@@ -132,6 +156,24 @@ describe('Sidebar drag-and-drop wiring', () => {
     fireEvent.drop(rowOf('Alpha'))
     expect(await screen.findByRole('alert')).toBeInTheDocument()
     expect(reloadFolders).not.toHaveBeenCalled()
+  })
+
+  it('a successful move also reloads files (grid filter is descendant-inclusive)', async () => {
+    const reloadFiles = vi.fn()
+    render(<Sidebar folders={dndFolders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={vi.fn()} reloadFiles={reloadFiles} />)
+    fireEvent.dragStart(rowOf('Beta'))
+    fireEvent.drop(rowOf('Alpha'))
+    await waitFor(() => expect(reloadFiles).toHaveBeenCalled())
+  })
+
+  it('starting a new drag clears a lingering move error', async () => {
+    ;(reorderFolders as unknown as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('nope'))
+    render(<Sidebar folders={dndFolders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={vi.fn()} reloadFiles={vi.fn()} />)
+    fireEvent.dragStart(rowOf('Beta'))
+    fireEvent.drop(rowOf('Alpha'))
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    fireEvent.dragStart(rowOf('Beta'))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('dropping onto "All Files" un-nests to root', async () => {
