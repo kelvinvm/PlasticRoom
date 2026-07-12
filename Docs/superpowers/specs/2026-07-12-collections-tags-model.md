@@ -1,7 +1,7 @@
 # Collections + Tags Model — Design Spec
 
 **Date:** 2026-07-12
-**Status:** Approved (design), pending implementation plan
+**Status:** IMPLEMENTED 2026-07-12 (branch `collections-tags-model`). Backend 57 tests, frontend 179 tests, `tsc -b` clean, prod build OK. Live API walkthrough confirmed: no system collections, `FolderDto` has no `isSystem`, `tagIds` AND-filtering + collection∩tag combination all correct. In-browser visual check (sidebar Collections/Tags rendering, click-to-filter chips) still needs a human eye.
 
 ## Problem
 
