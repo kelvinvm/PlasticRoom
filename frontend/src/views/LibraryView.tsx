@@ -30,7 +30,7 @@ export function LibraryView({
 
   const { folders, reload: reloadFolders } = useFolders()
   const { tags } = useTags()
-  const { files, loading, error, reload: reloadFiles } = useFiles(selectedFolderId, debouncedSearch)
+  const { files, loading, error, reload: reloadFiles } = useFiles(selectedFolderId, [], debouncedSearch)
 
   // Esc clears the current selection while one is active.
   useEffect(() => {

@@ -49,10 +49,13 @@ export function getTags(): Promise<Tag[]> {
   return getJson<Tag[]>('/api/tags')
 }
 
-export function getFiles(folderId: number | null, q: string): Promise<ModelFile[]> {
+export function getFiles(folderId: number | null, tagIds: number[], q: string): Promise<ModelFile[]> {
   const params = new URLSearchParams()
   if (folderId !== null) {
     params.set('folderId', String(folderId))
+  }
+  for (const id of tagIds) {
+    params.append('tagIds', String(id))
   }
   const trimmed = q.trim()
   if (trimmed) {

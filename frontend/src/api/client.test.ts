@@ -20,14 +20,20 @@ describe('api client', () => {
 
   it('getFiles with folderId and query builds the query string', async () => {
     ;(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(okJson([]))
-    await getFiles(7, 'dragon')
+    await getFiles(7, [], 'dragon')
     expect(fetch).toHaveBeenCalledWith('/api/files?folderId=7&q=dragon')
   })
 
   it('getFiles with null folder and blank query hits the bare endpoint', async () => {
     ;(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(okJson([]))
-    await getFiles(null, '   ')
+    await getFiles(null, [], '   ')
     expect(fetch).toHaveBeenCalledWith('/api/files')
+  })
+
+  it('getFiles appends one tagIds param per id, plus folderId and q', async () => {
+    ;(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(okJson([]))
+    await getFiles(2, [5, 7], 'chair')
+    expect(fetch).toHaveBeenCalledWith('/api/files?folderId=2&tagIds=5&tagIds=7&q=chair')
   })
 
   it('throws when the response is not ok', async () => {
