@@ -13,8 +13,8 @@ vi.mock('./views/DetailView', () => ({
 }))
 
 const folders: Folder[] = [
-  { id: 1, name: 'Miniatures', parentId: null, description: null, coverImageFileId: null, sortOrder: 0, isSystem: false },
-  { id: 2, name: 'Favorites', parentId: null, description: null, coverImageFileId: null, sortOrder: 0, isSystem: true },
+  { id: 1, name: 'Miniatures', parentId: null, description: null, coverImageFileId: null, sortOrder: 0 },
+  { id: 2, name: 'Favorites', parentId: null, description: null, coverImageFileId: null, sortOrder: 0 },
 ]
 const tags: Tag[] = [{ id: 1, name: 'Resin', colorKey: 'brass' }]
 const dragon: ModelFile = {

@@ -63,11 +63,11 @@ export function BatchAssignPanel({ selectedFileIds, folders, tags, onApplied }: 
       <h2 className={styles.heading}>{n} files selected</h2>
 
       <section className={styles.section}>
-        <div className={styles.sectionLabel}>FOLDERS</div>
+        <div className={styles.sectionLabel}>COLLECTIONS</div>
         <input
           className={styles.search}
-          aria-label="Search folders"
-          placeholder="Search folders…"
+          aria-label="Search collections"
+          placeholder="Search collections…"
           value={folderQuery}
           onChange={(e) => setFolderQuery(e.target.value)}
         />

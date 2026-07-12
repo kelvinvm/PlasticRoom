@@ -89,7 +89,7 @@ export function FileDetailPanel({ file, folders, tags, onAssignmentsSaved, onFol
       )}
 
       <div className={styles.chipGroup}>
-        <div className={styles.chipLabel}>Folders</div>
+        <div className={styles.chipLabel}>Collections</div>
         <div className={styles.chips}>
           {fileFolders.map((folder) => (
             <span key={folder.id} className={styles.chip}>

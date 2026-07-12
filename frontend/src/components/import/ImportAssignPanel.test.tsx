@@ -4,7 +4,7 @@ import { ImportAssignPanel } from './ImportAssignPanel'
 import type { Folder, Tag } from '../../api/types'
 
 const folders: Folder[] = [
-  { id: 3, name: 'To Print', parentId: null, description: null, coverImageFileId: null, sortOrder: 0, isSystem: true },
+  { id: 3, name: 'To Print', parentId: null, description: null, coverImageFileId: null, sortOrder: 0 },
 ]
 const tags: Tag[] = [{ id: 7, name: 'Resin', colorKey: 'orange' }]
 
@@ -44,7 +44,7 @@ describe('ImportAssignPanel', () => {
   it('toggles an existing folder from the search results', () => {
     const p = props()
     render(<ImportAssignPanel {...p} />)
-    fireEvent.change(screen.getByPlaceholderText(/search or pick a folder/i), { target: { value: 'To' } })
+    fireEvent.change(screen.getByPlaceholderText(/search or pick a collection/i), { target: { value: 'To' } })
     fireEvent.click(screen.getByText('To Print'))
     expect(p.onToggleFolder).toHaveBeenCalledWith(3)
   })

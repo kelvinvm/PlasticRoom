@@ -5,9 +5,9 @@ import * as client from '../api/client'
 import type { Folder, ModelFile } from '../api/types'
 
 const folders: Folder[] = [
-  { id: 1, name: 'Printed', parentId: null, description: null, coverImageFileId: null, sortOrder: 0, isSystem: true },
-  { id: 2, name: 'Terrain', parentId: null, description: null, coverImageFileId: null, sortOrder: 1, isSystem: false },
-  { id: 3, name: 'Trees', parentId: 2, description: null, coverImageFileId: null, sortOrder: 0, isSystem: false },
+  { id: 1, name: 'Printed', parentId: null, description: null, coverImageFileId: null, sortOrder: 0 },
+  { id: 2, name: 'Terrain', parentId: null, description: null, coverImageFileId: null, sortOrder: 1 },
+  { id: 3, name: 'Trees', parentId: 2, description: null, coverImageFileId: null, sortOrder: 0 },
 ]
 
 function setup(overrides: Partial<Parameters<typeof AssignFoldersModal>[0]> = {}) {
@@ -26,10 +26,8 @@ function setup(overrides: Partial<Parameters<typeof AssignFoldersModal>[0]> = {}
 describe('AssignFoldersModal', () => {
   beforeEach(() => vi.restoreAllMocks())
 
-  it('renders COLLECTIONS and LIBRARY groups with a checkbox per folder', () => {
+  it('renders a flat collection tree with a checkbox per folder', () => {
     setup()
-    expect(screen.getByText('COLLECTIONS')).toBeInTheDocument()
-    expect(screen.getByText('LIBRARY')).toBeInTheDocument()
     expect(screen.getByRole('checkbox', { name: 'Printed' })).toBeInTheDocument()
     expect(screen.getByRole('checkbox', { name: 'Terrain' })).toBeInTheDocument()
     expect(screen.getByRole('checkbox', { name: 'Trees' })).toBeInTheDocument()
@@ -74,12 +72,12 @@ describe('AssignFoldersModal', () => {
   })
 
   it('creates a folder, auto-checks it, and notifies', async () => {
-    const created: Folder = { id: 9, name: 'Dragons', parentId: null, description: null, coverImageFileId: null, sortOrder: 0, isSystem: false }
+    const created: Folder = { id: 9, name: 'Dragons', parentId: null, description: null, coverImageFileId: null, sortOrder: 0 }
     vi.spyOn(client, 'createFolder').mockResolvedValue(created)
     const props = setup()
 
-    fireEvent.click(screen.getByRole('button', { name: '+ New folder' }))
-    fireEvent.change(screen.getByLabelText('New folder name'), { target: { value: 'Dragons' } })
+    fireEvent.click(screen.getByRole('button', { name: '+ New collection' }))
+    fireEvent.change(screen.getByLabelText('New collection name'), { target: { value: 'Dragons' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
 
     await waitFor(() => expect(props.onFolderCreated).toHaveBeenCalledWith(created))

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DragEvent } from 'react'
-import type { Folder, FolderOrderItem } from '../api/types'
+import type { Folder, FolderOrderItem, Tag } from '../api/types'
 import { buildFolderTree, type FolderNode } from '../lib/folderTree'
 import { deleteFolder, reorderFolders, updateFolder } from '../api/client'
 import { computeFolderMove, resolveDropPosition, resolveRootDrop, type DropZone } from '../lib/folderMove'
+import { tagColor } from '../lib/format'
 import { ConfirmDialog } from './ConfirmDialog'
 import styles from './Sidebar.module.css'
 
@@ -14,6 +15,9 @@ interface SidebarProps {
   onImport: () => void
   reloadFolders: () => void
   reloadFiles: () => void
+  tags: Tag[]
+  selectedTagIds: number[]
+  onToggleTag: (id: number) => void
 }
 
 interface RowProps {
@@ -53,7 +57,7 @@ function FolderRow({
   const selected = node.id === selectedFolderId
   const hasChildren = node.children.length > 0
   const isCollapsed = collapsed.has(node.id)
-  const editable = !node.isSystem
+  const editable = true
   const menuOpen = openMenuId === node.id
 
   const [renaming, setRenaming] = useState(false)
@@ -177,6 +181,7 @@ function FolderRow({
 
 export function Sidebar({
   folders, selectedFolderId, onSelectFolder, onImport, reloadFolders, reloadFiles,
+  tags, selectedTagIds, onToggleTag,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set())
   const [pendingDelete, setPendingDelete] = useState<FolderNode | null>(null)
@@ -185,7 +190,7 @@ export function Sidebar({
   const [dragId, setDragId] = useState<number | null>(null)
   const [dropTarget, setDropTarget] = useState<{ id: number | 'root'; zone: DropZone } | null>(null)
 
-  const libraryTreeNodes = buildFolderTree(folders.filter((f) => !f.isSystem))
+  const collectionsTree = buildFolderTree(folders)
 
   // Dismiss an open context menu on outside click or Escape.
   useEffect(() => {
@@ -219,9 +224,9 @@ export function Sidebar({
     setDragId(null)
     setDropTarget(null)
     if (source === null) return
-    const pos = resolveDropPosition(libraryTreeNodes, source, targetId, zone)
+    const pos = resolveDropPosition(collectionsTree, source, targetId, zone)
     if (!pos) return
-    return commitMove(computeFolderMove(libraryTreeNodes, source, pos))
+    return commitMove(computeFolderMove(collectionsTree, source, pos))
   }
 
   const handleRootDrop = () => {
@@ -229,7 +234,7 @@ export function Sidebar({
     setDragId(null)
     setDropTarget(null)
     if (source === null) return
-    return commitMove(computeFolderMove(libraryTreeNodes, source, resolveRootDrop(libraryTreeNodes, source)))
+    return commitMove(computeFolderMove(collectionsTree, source, resolveRootDrop(collectionsTree, source)))
   }
 
   const handleDragLeaveRow = (id: number) =>
@@ -273,7 +278,6 @@ export function Sidebar({
     }
   }
 
-  const collectionsTree = buildFolderTree(folders.filter((f) => f.isSystem))
   const allFilesSelected = selectedFolderId === null
 
   return (
@@ -287,7 +291,7 @@ export function Sidebar({
         ⬆ Import files
       </button>
 
-      <div className={styles.sectionLabel}>Library</div>
+      <div className={styles.sectionLabel}>Collections</div>
       <div
         className={`${styles.row} ${allFilesSelected ? styles.rowSelected : ''} ${dropTarget?.id === 'root' ? styles.dropTarget : ''}`}
         style={{ paddingLeft: 12 }}
@@ -305,7 +309,7 @@ export function Sidebar({
           <span className={styles.rowLabel}>All Files</span>
         </button>
       </div>
-      {libraryTreeNodes.map((node) => (
+      {collectionsTree.map((node) => (
         <FolderRow
           key={node.id}
           node={node}
@@ -329,30 +333,22 @@ export function Sidebar({
         />
       ))}
 
-      <div className={styles.sectionLabel}>Collections</div>
-      {collectionsTree.map((node) => (
-        <FolderRow
-          key={node.id}
-          node={node}
-          depth={0}
-          selectedFolderId={selectedFolderId}
-          onSelectFolder={onSelectFolder}
-          collapsed={collapsed}
-          onToggleCollapse={toggleCollapse}
-          onRename={handleRename}
-          onRequestDelete={setPendingDelete}
-          openMenuId={openMenuId}
-          onOpenMenu={setOpenMenuId}
-          onCloseMenu={() => setOpenMenuId(null)}
-          dragId={null}
-          dropTarget={null}
-          onDragStartRow={() => {}}
-          onDragOverRow={() => {}}
-          onDragLeaveRow={() => {}}
-          onDropRow={() => {}}
-          onDragEndRow={() => {}}
-        />
-      ))}
+      <div className={styles.sectionLabel}>Tags</div>
+      {tags.map((tag) => {
+        const active = selectedTagIds.includes(tag.id)
+        return (
+          <button
+            key={tag.id}
+            type="button"
+            className={`${styles.tagRow} ${active ? styles.tagRowActive : ''}`}
+            aria-pressed={active}
+            onClick={() => onToggleTag(tag.id)}
+          >
+            <span className={styles.tagDot} style={{ background: tagColor(tag.colorKey) }} aria-hidden="true" />
+            <span className={styles.rowLabel}>{tag.name}</span>
+          </button>
+        )
+      })}
 
       {actionError && <div role="alert" className={styles.actionError}>{actionError}</div>}
 

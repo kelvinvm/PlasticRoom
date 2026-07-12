@@ -21,8 +21,8 @@ public static class SampleDataSeeder
     {
         using var session = sessionFactory.CreateSession();
 
-        // Idempotency: bail if sample content (any non-system folder) already exists.
-        if (new XPCollection<Folder>(session).Any(f => !f.IsSystem))
+        // Idempotency: bail if any folder already exists.
+        if (new XPCollection<Folder>(session).Any())
         {
             return;
         }
@@ -36,9 +36,6 @@ public static class SampleDataSeeder
         var terrain = new Folder(session) { Name = "Terrain" };
         terrain.Save();
 
-        var favorites = new XPCollection<Folder>(session).FirstOrDefault(f => f.IsSystem && f.Name == "Favorites");
-        var toPrint = new XPCollection<Folder>(session).FirstOrDefault(f => f.IsSystem && f.Name == "To Print");
-
         var tagResin = new Tag(session) { Name = "Resin", ColorKey = "brass" };
         var tagPla = new Tag(session) { Name = "PLA", ColorKey = "green" };
         var tagWip = new Tag(session) { Name = "WIP", ColorKey = "orange" };
@@ -48,10 +45,10 @@ public static class SampleDataSeeder
 
         CreateSampleFile(session, fileStorage, "Articulated_Dragon.stl", ModelFileType.Stl,
             "Print-in-place dragon, 8 segments",
-            new[] { miniatures, dnd, favorites }, new[] { tagPla });
+            new[] { miniatures, dnd }, new[] { tagPla });
         CreateSampleFile(session, fileStorage, "Goblin_King_Mini.stl", ModelFileType.Stl,
             "32mm scale, single piece",
-            new[] { dnd, toPrint }, new[] { tagResin, tagWip });
+            new[] { dnd }, new[] { tagResin, tagWip });
         CreateSampleFile(session, fileStorage, "Chess_Knight_Set.3mf", ModelFileType.ThreeMf,
             "4 plates, resin optimized",
             new[] { household }, new[] { tagResin });

@@ -26,7 +26,7 @@ public class FilesController : ControllerBase
     }
 
     [HttpGet]
-    public IActionResult GetAll([FromQuery] int? folderId, [FromQuery] string? q)
+    public IActionResult GetAll([FromQuery] int? folderId, [FromQuery] List<int>? tagIds, [FromQuery] string? q)
     {
         using var session = _sessionFactory.CreateSession();
 
@@ -47,6 +47,14 @@ public class FilesController : ControllerBase
         else
         {
             files = new XPCollection<ModelFile>(session).ToList();
+        }
+
+        if (tagIds is { Count: > 0 })
+        {
+            var required = tagIds.ToHashSet();
+            files = files
+                .Where(f => required.All(tid => f.FileTags.Any(ft => ft.Tag.Oid == tid)))
+                .ToList();
         }
 
         var trimmed = q?.Trim();

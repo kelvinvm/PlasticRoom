@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using PlasticRoom.Api.Controllers;
 using PlasticRoom.Api.Data;
 using PlasticRoom.Api.Dtos;
+using PlasticRoom.Api.Entities;
 using Xunit;
 
 namespace PlasticRoom.Api.Tests.Controllers;
@@ -153,11 +154,51 @@ public class FilesControllerTests : IDisposable
             folderId = folder.Oid;
         }
 
-        var result = Assert.IsType<OkObjectResult>(_controller.GetAll(folderId, null));
+        var result = Assert.IsType<OkObjectResult>(_controller.GetAll(folderId, null, null));
         var files = Assert.IsAssignableFrom<List<ModelFileDto>>(result.Value);
 
         Assert.Single(files);
         Assert.Equal(uploadedB.Id, files[0].Id);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetAll_FiltersByTagIds_WithAndSemantics()
+    {
+        var a = Assert.IsType<ModelFileDto>(
+            Assert.IsType<CreatedAtActionResult>(
+                await _controller.Upload(new UploadFileRequest { File = BuildStlFormFile("a.stl") })).Value);
+        var b = Assert.IsType<ModelFileDto>(
+            Assert.IsType<CreatedAtActionResult>(
+                await _controller.Upload(new UploadFileRequest { File = BuildStlFormFile("b.stl") })).Value);
+
+        int tag1, tag2;
+        using (var session = _sessionFactory.CreateSession())
+        {
+            var t1 = new Tag(session) { Name = "PLA" }; t1.Save();
+            var t2 = new Tag(session) { Name = "ToPrint" }; t2.Save();
+            var fa = session.GetObjectByKey<ModelFile>(a.Id);
+            var fb = session.GetObjectByKey<ModelFile>(b.Id);
+            new FileTag(session) { File = fa, Tag = t1 }.Save();  // a has both tags
+            new FileTag(session) { File = fa, Tag = t2 }.Save();
+            new FileTag(session) { File = fb, Tag = t1 }.Save();  // b has only tag1
+            tag1 = t1.Oid; tag2 = t2.Oid;
+        }
+
+        // Both tags required (AND) -> only a
+        var bothResult = _controller.GetAll(null, new List<int> { tag1, tag2 }, null);
+        var both = Assert.IsType<List<ModelFileDto>>(Assert.IsType<OkObjectResult>(bothResult).Value);
+        Assert.Single(both);
+        Assert.Equal(a.Id, both[0].Id);
+
+        // Single shared tag -> both files
+        var oneResult = _controller.GetAll(null, new List<int> { tag1 }, null);
+        var one = Assert.IsType<List<ModelFileDto>>(Assert.IsType<OkObjectResult>(oneResult).Value);
+        Assert.Equal(2, one.Count);
+
+        // No tag filter -> both files
+        var noneResult = _controller.GetAll(null, null, null);
+        var none = Assert.IsType<List<ModelFileDto>>(Assert.IsType<OkObjectResult>(noneResult).Value);
+        Assert.Equal(2, none.Count);
     }
 
     [Fact]
@@ -182,7 +223,7 @@ public class FilesControllerTests : IDisposable
             parentFolderId = parent.Oid;
         }
 
-        var result = Assert.IsType<OkObjectResult>(_controller.GetAll(parentFolderId, null));
+        var result = Assert.IsType<OkObjectResult>(_controller.GetAll(parentFolderId, null, null));
         var files = Assert.IsAssignableFrom<List<ModelFileDto>>(result.Value);
 
         Assert.Equal(2, files.Count);
@@ -209,7 +250,7 @@ public class FilesControllerTests : IDisposable
             parentFolderId = parent.Oid;
         }
 
-        var result = Assert.IsType<OkObjectResult>(_controller.GetAll(parentFolderId, null));
+        var result = Assert.IsType<OkObjectResult>(_controller.GetAll(parentFolderId, null, null));
         var files = Assert.IsAssignableFrom<List<ModelFileDto>>(result.Value);
 
         Assert.Single(files);
@@ -224,7 +265,7 @@ public class FilesControllerTests : IDisposable
             (await _controller.Upload(new UploadFileRequest { File = BuildStlFormFile("Knight.stl") }))).Value!;
         _controller.Update(knight.Id, new UpdateFileRequest("A fearsome DRAGON slayer", null, null, null, null, null));
 
-        var result = Assert.IsType<OkObjectResult>(_controller.GetAll(null, "dragon"));
+        var result = Assert.IsType<OkObjectResult>(_controller.GetAll(null, null, "dragon"));
         var files = Assert.IsAssignableFrom<List<ModelFileDto>>(result.Value);
 
         Assert.Equal(2, files.Count); // Dragon.stl by name, Knight.stl by description
@@ -250,7 +291,7 @@ public class FilesControllerTests : IDisposable
             folderId = folder.Oid;
         }
 
-        var result = Assert.IsType<OkObjectResult>(_controller.GetAll(folderId, "dragon"));
+        var result = Assert.IsType<OkObjectResult>(_controller.GetAll(folderId, null, "dragon"));
         var files = Assert.IsAssignableFrom<List<ModelFileDto>>(result.Value);
 
         Assert.Single(files);
@@ -392,7 +433,7 @@ public class FilesControllerTests : IDisposable
             folderAId = a.Oid;
         }
 
-        var result = Assert.IsType<OkObjectResult>(_controller.GetAll(folderAId, null));
+        var result = Assert.IsType<OkObjectResult>(_controller.GetAll(folderAId, null, null));
         var files = Assert.IsAssignableFrom<List<ModelFileDto>>(result.Value);
 
         Assert.Single(files);

@@ -15,8 +15,6 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-FolderSeeder.SeedSystemFolders(app.Services.GetRequiredService<XpoSessionFactory>());
-
 if (SampleDataSeeder.IsEnabled())
 {
     SampleDataSeeder.Seed(

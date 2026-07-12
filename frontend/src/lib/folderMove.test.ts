@@ -5,7 +5,7 @@ import type { Folder } from '../api/types'
 
 // A(1) [C(3), D(4)], B(2)  — roots A,B; A has children C,D
 const f = (id: number, parentId: number | null, sortOrder: number): Folder => ({
-  id, name: `f${id}`, parentId, description: null, coverImageFileId: null, sortOrder, isSystem: false,
+  id, name: `f${id}`, parentId, description: null, coverImageFileId: null, sortOrder,
 })
 const tree = () => buildFolderTree([f(1, null, 0), f(2, null, 1), f(3, 1, 0), f(4, 1, 1)])
 
