@@ -26,7 +26,7 @@ public class SampleDataSeederTests : IDisposable
         SampleDataSeeder.Seed(_sessionFactory, _fileStorage);
 
         using var session = _sessionFactory.CreateSession();
-        Assert.True(new DevExpress.Xpo.XPCollection<Folder>(session).Any(f => !f.IsSystem));
+        Assert.True(new DevExpress.Xpo.XPCollection<Folder>(session).Any());
         Assert.True(new DevExpress.Xpo.XPCollection<Tag>(session).Any());
 
         var files = new DevExpress.Xpo.XPCollection<ModelFile>(session).ToList();

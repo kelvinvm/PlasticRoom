@@ -32,7 +32,7 @@ public class FoldersControllerTests : IDisposable
         var getAllResult = Assert.IsType<OkObjectResult>(_controller.GetAll());
         var folders = Assert.IsAssignableFrom<System.Collections.Generic.List<FolderDto>>(getAllResult.Value);
 
-        Assert.Contains(folders, f => f.Id == created.Id && f.Name == "Miniatures" && !f.IsSystem);
+        Assert.Contains(folders, f => f.Id == created.Id && f.Name == "Miniatures");
     }
 
     [Fact]
@@ -45,31 +45,6 @@ public class FoldersControllerTests : IDisposable
         var updated = Assert.IsType<FolderDto>(Assert.IsType<OkObjectResult>(updateResult).Value);
 
         Assert.Equal("New Name", updated.Name);
-    }
-
-    [Fact]
-    public void Update_RejectsRenameOfSystemFolder()
-    {
-        FolderSeeder.SeedSystemFolders(_factory);
-        using var session = _factory.CreateSession();
-        var systemFolder = new DevExpress.Xpo.XPCollection<Folder>(session).First(f => f.IsSystem);
-
-        var result = _controller.Update(systemFolder.Oid, new UpdateFolderRequest("Renamed", null, null, null, null));
-
-        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal(400, badRequest.StatusCode);
-    }
-
-    [Fact]
-    public void Delete_RejectsSystemFolder()
-    {
-        FolderSeeder.SeedSystemFolders(_factory);
-        using var session = _factory.CreateSession();
-        var systemFolder = new DevExpress.Xpo.XPCollection<Folder>(session).First(f => f.IsSystem);
-
-        var result = _controller.Delete(systemFolder.Oid);
-
-        Assert.IsType<BadRequestObjectResult>(result);
     }
 
     [Fact]
@@ -186,30 +161,6 @@ public class FoldersControllerTests : IDisposable
         Assert.Equal(b.Id, updatedA.ParentId);
         Assert.Equal(0, updatedA.SortOrder);
         Assert.Equal(0, folders.Single(f => f.Id == b.Id).SortOrder);
-    }
-
-    [Fact]
-    public void Order_RejectsSystemFolder_AndWritesNothing()
-    {
-        FolderSeeder.SeedSystemFolders(_factory);
-        var a = (FolderDto)Assert.IsType<CreatedAtActionResult>(
-            _controller.Create(new CreateFolderRequest("A", null, null))).Value!;
-        int systemId;
-        using (var session = _factory.CreateSession())
-        {
-            systemId = new DevExpress.Xpo.XPCollection<Folder>(session).First(f => f.IsSystem).Oid;
-        }
-
-        var result = _controller.Order(new ReorderFoldersRequest(new()
-        {
-            new FolderOrderItem(a.Id, null, 5),
-            new FolderOrderItem(systemId, null, 6),
-        }));
-
-        Assert.IsType<BadRequestObjectResult>(result);
-        using var verify = _factory.CreateSession();
-        // A's sortOrder was NOT changed (still 0 default) because validation failed first.
-        Assert.Equal(0, verify.GetObjectByKey<Folder>(a.Id)!.SortOrder);
     }
 
     [Fact]

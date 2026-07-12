@@ -47,13 +47,6 @@ public class Folder : XPObject
         set => SetPropertyValue(nameof(SortOrder), ref sortOrder, value);
     }
 
-    private bool isSystem;
-    public bool IsSystem
-    {
-        get => isSystem;
-        set => SetPropertyValue(nameof(IsSystem), ref isSystem, value);
-    }
-
     [Association("Folder-FileFolders")]
     public XPCollection<FileFolder> FileFolders => GetCollection<FileFolder>(nameof(FileFolders));
 }

@@ -47,7 +47,6 @@ public class FoldersController : ControllerBase
             Name = request.Name,
             ParentFolder = parent,
             Description = request.Description,
-            IsSystem = false,
         };
         folder.Save();
 
@@ -62,11 +61,6 @@ public class FoldersController : ControllerBase
         if (folder is null)
         {
             return NotFound(new { error = $"Folder {id} not found" });
-        }
-
-        if (folder.IsSystem && (request.Name is not null || request.ParentId is not null))
-        {
-            return BadRequest(new { error = "System folders cannot be renamed or reparented" });
         }
 
         if (request.Name is not null)
@@ -133,11 +127,6 @@ public class FoldersController : ControllerBase
             if (folder is null)
             {
                 return NotFound(new { error = $"Folder {item.Id} not found" });
-            }
-
-            if (folder.IsSystem)
-            {
-                return BadRequest(new { error = $"Folder {item.Id} is a system folder and cannot be reordered" });
             }
 
             Folder? parent = null;
@@ -209,11 +198,6 @@ public class FoldersController : ControllerBase
             return NotFound(new { error = $"Folder {id} not found" });
         }
 
-        if (folder.IsSystem)
-        {
-            return BadRequest(new { error = "System folders cannot be deleted" });
-        }
-
         DeleteFolderRecursive(folder);
         session.PurgeDeletedObjects();
         return NoContent();
@@ -255,6 +239,5 @@ public class FoldersController : ControllerBase
         folder.Description,
         folder.CoverImageFile?.Oid,
         folder.SortOrder,
-        folder.IsSystem,
         folder.FileFolders.Count);
 }
