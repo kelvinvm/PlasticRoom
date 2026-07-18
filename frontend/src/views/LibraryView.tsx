@@ -159,6 +159,8 @@ export function LibraryView({
           tags={tags}
           onAssignmentsSaved={reloadFiles}
           onFolderCreated={reloadFolders}
+          onFieldSaved={reloadFiles}
+          onTagCreated={reloadTags}
         />
       )}
       {pendingDeleteFile && (

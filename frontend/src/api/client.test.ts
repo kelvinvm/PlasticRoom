@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { batchAssign, createFolder, createTag, deleteTag, getFiles, getFolders, plateThumbnailUrl, setFileFolders, updateTag, uploadFile, uploadThumbnail } from './client'
+import { batchAssign, createFolder, createTag, deleteTag, getFiles, getFolders, plateThumbnailUrl, setFileFolders, setFileTags, updateFile, updateTag, uploadFile, uploadThumbnail } from './client'
 
 describe('api client', () => {
   beforeEach(() => {
@@ -190,6 +190,39 @@ describe('tag mutations', () => {
   it('deleteTag throws when the response is not ok', async () => {
     ;(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: false, status: 404 } as Response)
     await expect(deleteTag(999)).rejects.toThrow()
+  })
+})
+
+describe('file field + tag mutations', () => {
+  beforeEach(() => vi.stubGlobal('fetch', vi.fn()))
+  afterEach(() => vi.unstubAllGlobals())
+
+  const okJson = (value: unknown) =>
+    ({ ok: true, json: () => Promise.resolve(value) }) as Response
+
+  it('updateFile PUTs the given patch as JSON', async () => {
+    const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>
+    fetchMock.mockResolvedValue(okJson({ id: 5, description: 'new' }))
+
+    await updateFile(5, { description: 'new', material: 'PETG' })
+
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/files/5')
+    expect(init.method).toBe('PUT')
+    expect(init.headers['Content-Type']).toBe('application/json')
+    expect(JSON.parse(init.body)).toEqual({ description: 'new', material: 'PETG' })
+  })
+
+  it('setFileTags PUTs the id list as JSON', async () => {
+    const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>
+    fetchMock.mockResolvedValue(okJson({ id: 5, tagIds: [2, 3] }))
+
+    await setFileTags(5, [2, 3])
+
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/files/5/tags')
+    expect(init.method).toBe('PUT')
+    expect(JSON.parse(init.body)).toEqual({ ids: [2, 3] })
   })
 })
 

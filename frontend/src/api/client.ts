@@ -81,12 +81,21 @@ export function plateThumbnailUrl(id: number, index: number): string {
   return `/api/files/${id}/plates/${index}/thumbnail`
 }
 
-export async function updateFileDescription(id: number, description: string): Promise<ModelFile> {
+export interface FilePatch {
+  description?: string
+  sourceUrl?: string
+  creator?: string
+  material?: string
+  estPrintTimeMin?: number
+  layerHeightMm?: number
+}
+
+export async function updateFile(id: number, patch: FilePatch): Promise<ModelFile> {
   const url = `/api/files/${id}`
   const res = await fetch(url, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ description }),
+    body: JSON.stringify(patch),
   })
   return parseJsonOrThrow<ModelFile>(res, url)
 }
@@ -97,6 +106,16 @@ export async function setFileFolders(id: number, folderIds: number[]): Promise<M
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ids: folderIds }),
+  })
+  return parseJsonOrThrow<ModelFile>(res, url)
+}
+
+export async function setFileTags(id: number, tagIds: number[]): Promise<ModelFile> {
+  const url = `/api/files/${id}/tags`
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids: tagIds }),
   })
   return parseJsonOrThrow<ModelFile>(res, url)
 }

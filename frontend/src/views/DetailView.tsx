@@ -25,7 +25,7 @@ export function DetailView({
 }) {
   const { file, loading, error, reload } = useFile(fileId)
   const { folders, reload: reloadFolders } = useFolders()
-  const { tags } = useTags()
+  const { tags, reload: reloadTags } = useTags()
 
   const [model, setModel] = useState<LoadedModel | null>(null)
   const [plateThumbs, setPlateThumbs] = useState<string[]>([])
@@ -132,9 +132,10 @@ export function DetailView({
           file={file}
           folders={folders}
           tags={tags}
-          onDescriptionSaved={() => reload()}
+          onFieldSaved={() => reload()}
           onAssignmentsSaved={() => reload()}
           onFolderCreated={() => reloadFolders()}
+          onTagCreated={() => reloadTags()}
         />
       )}
     </div>

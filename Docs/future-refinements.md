@@ -169,3 +169,16 @@ user-editable palette slots.
 Combine two tags into one — reassigns every `FileTag` from a losing tag to a winning
 tag, then deletes the loser. Explicitly deferred out of tag management (rename/recolor/
 delete, implemented 2026-07-18) as a separate, larger concept.
+
+## 10. Auto-parse Material/Est. print time/Layer height from Bambu 3MF metadata
+
+Bambu Studio 3MFs embed real values for these — `Metadata/slice_info.config` (print
+time estimate, filament weight/type) and `Metadata/project_settings.config` (layer
+height, filament type) — the same kind of Bambu-specific file `BambuPlateParser.cs`
+already reads for plates. Raised while brainstorming editable file metadata
+(implemented 2026-07-18): manual editing shipped there; this would let those fields
+start pre-filled on import instead. Slicer-specific (Bambu only — other slicers like
+PrusaSlicer use a different metadata format); explicitly deferred twice before this
+(Phase 2 spec, Bambu plate metadata work) as a separate, larger effort. Source URL
+can never be derived this way (inherently user-supplied); Creator parsing from
+generic 3MF `<metadata>` is unproven across sources and not attempted here either.
