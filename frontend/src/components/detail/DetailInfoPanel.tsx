@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Folder, ModelFile, Tag } from '../../api/types'
-import { formatBytes, formatDimensions, formatPrintTime, tagColor } from '../../lib/format'
-import { updateFileDescription } from '../../api/client'
+import { formatBytes, formatDimensions, tagColor } from '../../lib/format'
+import { updateFile, type FilePatch } from '../../api/client'
 import { typeLabel } from '../FileGrid'
 import { AssignFoldersModal } from '../AssignFoldersModal'
 import styles from './DetailInfoPanel.module.css'
@@ -11,46 +11,123 @@ interface Row {
   value: string
 }
 
+type FieldKey = 'description' | 'sourceUrl' | 'creator' | 'material' | 'estPrintTimeMin' | 'layerHeightMm'
+
+function fieldDefaults(file: ModelFile): Record<FieldKey, string> {
+  return {
+    description: file.description ?? '',
+    sourceUrl: file.sourceUrl ?? '',
+    creator: file.creator ?? '',
+    material: file.material ?? '',
+    estPrintTimeMin: file.estPrintTimeMin != null ? String(file.estPrintTimeMin) : '',
+    layerHeightMm: file.layerHeightMm != null ? String(file.layerHeightMm) : '',
+  }
+}
+
 export function DetailInfoPanel({
   file,
   folders,
   tags,
-  onDescriptionSaved,
+  onFieldSaved,
   onAssignmentsSaved,
   onFolderCreated,
+  onTagCreated,
 }: {
   file: ModelFile
   folders: Folder[]
   tags: Tag[]
-  onDescriptionSaved: (updated: ModelFile) => void
+  onFieldSaved: (updated: ModelFile) => void
   onAssignmentsSaved: () => void
   onFolderCreated: () => void
+  onTagCreated: () => void
 }) {
-  const [description, setDescription] = useState(file.description ?? '')
-  const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState(false)
+  const [drafts, setDrafts] = useState<Record<FieldKey, string>>(() => fieldDefaults(file))
+  const [savingFields, setSavingFields] = useState<Set<FieldKey>>(new Set())
+  const [errorFields, setErrorFields] = useState<Set<FieldKey>>(new Set())
   const [assignOpen, setAssignOpen] = useState(false)
 
   // Re-sync when navigating to a different file.
-  // Intentionally depends on file.id only: local `description` state owns the
-  // edit between navigations, so it must not be clobbered when the same file's
-  // description prop echoes back (e.g. after a save round-trip via reload()).
-  // Also resets transient save state (saveError/saving) so a stale error from
-  // a previous file doesn't linger on the newly navigated-to file's panel.
+  // Intentionally depends on file.id only: local `drafts` state owns the edit
+  // between navigations, so it must not be clobbered when the same file's fields
+  // echo back (e.g. after a save round-trip via reload()). Also resets transient
+  // save state so a stale error from a previous file doesn't linger.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    setDescription(file.description ?? '')
-    setSaveError(false)
-    setSaving(false)
+    setDrafts(fieldDefaults(file))
+    setSavingFields(new Set())
+    setErrorFields(new Set())
   }, [file.id])
+
+  async function saveField(key: FieldKey, patch: FilePatch, currentValue: string) {
+    if (drafts[key] === currentValue) return
+    setSavingFields((prev) => new Set(prev).add(key))
+    setErrorFields((prev) => {
+      const next = new Set(prev)
+      next.delete(key)
+      return next
+    })
+    try {
+      const updated = await updateFile(file.id, patch)
+      onFieldSaved(updated)
+    } catch {
+      setErrorFields((prev) => new Set(prev).add(key))
+    } finally {
+      setSavingFields((prev) => {
+        const next = new Set(prev)
+        next.delete(key)
+        return next
+      })
+    }
+  }
+
+  function handleDescriptionBlur() {
+    saveField('description', { description: drafts.description }, file.description ?? '')
+  }
+  function handleSourceUrlBlur() {
+    saveField('sourceUrl', { sourceUrl: drafts.sourceUrl }, file.sourceUrl ?? '')
+  }
+  function handleCreatorBlur() {
+    saveField('creator', { creator: drafts.creator }, file.creator ?? '')
+  }
+  function handleMaterialBlur() {
+    saveField('material', { material: drafts.material }, file.material ?? '')
+  }
+  function handleEstPrintTimeBlur() {
+    if (drafts.estPrintTimeMin.trim() === '') return
+    const parsed = parseInt(drafts.estPrintTimeMin, 10)
+    if (Number.isNaN(parsed)) return
+    saveField(
+      'estPrintTimeMin',
+      { estPrintTimeMin: parsed },
+      file.estPrintTimeMin != null ? String(file.estPrintTimeMin) : '',
+    )
+  }
+  function handleLayerHeightBlur() {
+    if (drafts.layerHeightMm.trim() === '') return
+    const parsed = parseFloat(drafts.layerHeightMm)
+    if (Number.isNaN(parsed)) return
+    saveField(
+      'layerHeightMm',
+      { layerHeightMm: parsed },
+      file.layerHeightMm != null ? String(file.layerHeightMm) : '',
+    )
+  }
+
+  function fieldHint(key: FieldKey) {
+    if (savingFields.has(key)) return <span className={styles.savingHint}>Saving…</span>
+    if (errorFields.has(key)) {
+      return (
+        <span className={styles.errorHint} role="alert">
+          Couldn't save — try again
+        </span>
+      )
+    }
+    return null
+  }
 
   const rows: Row[] = []
   const dims = formatDimensions(file.dimXMm, file.dimYMm, file.dimZMm)
   if (dims) rows.push({ label: 'Dimensions', value: dims })
-  const printTime = formatPrintTime(file.estPrintTimeMin)
-  if (printTime) rows.push({ label: 'Est. print time', value: printTime })
-  if (file.material) rows.push({ label: 'Material', value: file.material })
-  if (file.layerHeightMm !== null) rows.push({ label: 'Layer height', value: `${file.layerHeightMm} mm` })
   if (file.plateCount !== null) rows.push({ label: 'Plates', value: String(file.plateCount) })
 
   const fileFolders = file.folderIds
@@ -59,22 +136,6 @@ export function DetailInfoPanel({
   const fileTags = file.tagIds
     .map((id) => tags.find((t) => t.id === id))
     .filter((t): t is Tag => t !== undefined)
-
-  async function handleBlur() {
-    if (saving) return
-    const next = description
-    if (next === (file.description ?? '')) return
-    setSaving(true)
-    try {
-      const updated = await updateFileDescription(file.id, next)
-      onDescriptionSaved(updated)
-      setSaveError(false)
-    } catch {
-      setSaveError(true)
-    } finally {
-      setSaving(false)
-    }
-  }
 
   return (
     <aside className={styles.panel}>
@@ -100,20 +161,88 @@ export function DetailInfoPanel({
         <textarea
           className={styles.description}
           aria-label="Description"
-          value={description}
+          value={drafts.description}
           onChange={(e) => {
-            setDescription(e.target.value)
-            setSaveError(false)
+            setDrafts((d) => ({ ...d, description: e.target.value }))
+            setErrorFields((prev) => {
+              const next = new Set(prev)
+              next.delete('description')
+              return next
+            })
           }}
-          onBlur={handleBlur}
+          onBlur={handleDescriptionBlur}
           placeholder="Add a description…"
         />
-        {saving && <span className={styles.savingHint}>Saving…</span>}
-        {saveError && (
-          <span className={styles.errorHint} role="alert">
-            Couldn't save — try again
-          </span>
-        )}
+        {fieldHint('description')}
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionLabel}>SOURCE URL</div>
+        <input
+          type="url"
+          aria-label="Source URL"
+          className={styles.fieldInput}
+          value={drafts.sourceUrl}
+          onChange={(e) => setDrafts((d) => ({ ...d, sourceUrl: e.target.value }))}
+          onBlur={handleSourceUrlBlur}
+          placeholder="https://…"
+        />
+        {fieldHint('sourceUrl')}
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionLabel}>CREATOR</div>
+        <input
+          type="text"
+          aria-label="Creator"
+          className={styles.fieldInput}
+          value={drafts.creator}
+          onChange={(e) => setDrafts((d) => ({ ...d, creator: e.target.value }))}
+          onBlur={handleCreatorBlur}
+        />
+        {fieldHint('creator')}
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionLabel}>MATERIAL</div>
+        <input
+          type="text"
+          aria-label="Material"
+          className={styles.fieldInput}
+          value={drafts.material}
+          onChange={(e) => setDrafts((d) => ({ ...d, material: e.target.value }))}
+          onBlur={handleMaterialBlur}
+        />
+        {fieldHint('material')}
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionLabel}>EST. PRINT TIME (MIN)</div>
+        <input
+          type="number"
+          min="0"
+          aria-label="Est. print time (min)"
+          className={styles.fieldInput}
+          value={drafts.estPrintTimeMin}
+          onChange={(e) => setDrafts((d) => ({ ...d, estPrintTimeMin: e.target.value }))}
+          onBlur={handleEstPrintTimeBlur}
+        />
+        {fieldHint('estPrintTimeMin')}
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionLabel}>LAYER HEIGHT (MM)</div>
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          aria-label="Layer height (mm)"
+          className={styles.fieldInput}
+          value={drafts.layerHeightMm}
+          onChange={(e) => setDrafts((d) => ({ ...d, layerHeightMm: e.target.value }))}
+          onBlur={handleLayerHeightBlur}
+        />
+        {fieldHint('layerHeightMm')}
       </section>
 
       <section className={styles.section}>
@@ -143,9 +272,11 @@ export function DetailInfoPanel({
         <AssignFoldersModal
           file={file}
           folders={folders}
+          tags={tags}
           onClose={() => setAssignOpen(false)}
           onSaved={() => onAssignmentsSaved()}
           onFolderCreated={() => onFolderCreated()}
+          onTagCreated={() => onTagCreated()}
         />
       )}
     </aside>

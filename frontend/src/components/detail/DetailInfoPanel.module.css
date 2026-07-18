@@ -105,6 +105,17 @@
   border: 1px dashed var(--text-tertiary);
   border-radius: 99px;
   background: transparent;
-  color: var(--text-tertiary);
-  cursor: not-allowed;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.fieldInput {
+  width: 100%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-chip);
+  padding: 6px 8px;
+  color: var(--text-primary);
+  font-family: var(--font-ui, inherit);
+  font-size: 12px;
 }
