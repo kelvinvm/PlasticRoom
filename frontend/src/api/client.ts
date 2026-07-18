@@ -162,3 +162,21 @@ export async function deleteFile(id: number): Promise<void> {
     throw new Error(`Request to ${url} failed with status ${res.status}`)
   }
 }
+
+export async function updateTag(id: number, name: string, colorKey: string | null): Promise<Tag> {
+  const url = `/api/tags/${id}`
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, colorKey }),
+  })
+  return parseJsonOrThrow<Tag>(res, url)
+}
+
+export async function deleteTag(id: number): Promise<void> {
+  const url = `/api/tags/${id}`
+  const res = await fetch(url, { method: 'DELETE' })
+  if (!res.ok) {
+    throw new Error(`Request to ${url} failed with status ${res.status}`)
+  }
+}
