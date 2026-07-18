@@ -176,3 +176,12 @@ that's the natural home for management. Explicitly a non-goal of that spec.
   so the grid doesn't keep filtering on a ghost tag (and its toolbar chip disappears).
 - **Optional (larger):** merge two tags into one — reassigns every `FileTag` from the
   losing tag to the winner, then deletes the loser.
+
+## 9. Customizable tag colors (Settings)
+
+Let users define their own tag color palette (e.g. via a Settings page, see item #1)
+rather than picking from the fixed brass/orange/green/red set in
+`frontend/src/lib/format.ts`. Raised while brainstorming item #8: useful for
+accessibility (e.g. choosing colors that are distinguishable for color-blind users)
+and personal preference. Decide during brainstorming whether this is a custom hex
+picker per tag or a small set of user-editable palette slots.
