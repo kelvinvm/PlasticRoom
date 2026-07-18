@@ -88,3 +88,41 @@ describe('LibraryView file delete', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 })
+
+describe('LibraryView tag management', () => {
+  const printedTag: Tag = { id: 11, name: 'Printed', colorKey: 'orange' }
+
+  function mockApiWithTag(opts: { deleteOk?: boolean } = {}) {
+    vi.stubGlobal('fetch', vi.fn((url: string, init?: RequestInit) => {
+      if (init?.method === 'DELETE') {
+        return Promise.resolve({ ok: opts.deleteOk ?? true } as Response)
+      }
+      let body: unknown = []
+      if (url.startsWith('/api/folders')) body = folders
+      else if (url.startsWith('/api/tags')) body = [printedTag]
+      else if (url.startsWith('/api/files')) body = [dragon, goblin]
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(body) } as Response)
+    }))
+  }
+
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('deleting a tag that is currently selected as a filter clears its toolbar chip', async () => {
+    mockApiWithTag()
+    renderView()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Printed' })).toBeInTheDocument())
+
+    // Select the tag filter first (mirrors clicking it in the Sidebar).
+    fireEvent.click(screen.getByRole('button', { name: 'Printed' }))
+    expect(screen.getByRole('button', { name: 'Printed ×' })).toBeInTheDocument()
+
+    // Right-click the tag row, delete it, confirm.
+    fireEvent.contextMenu(screen.getByRole('button', { name: 'Printed' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Printed ×' })).not.toBeInTheDocument(),
+    )
+  })
+})

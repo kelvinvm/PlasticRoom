@@ -25,6 +25,8 @@ export function LibraryView({
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
   const toggleTag = (id: number) =>
     setSelectedTagIds((cur) => (cur.includes(id) ? cur.filter((t) => t !== id) : [...cur, id]))
+  const handleTagDeleted = (id: number) =>
+    setSelectedTagIds((cur) => cur.filter((t) => t !== id))
   const [selection, setSelection] = useState<Selection>(emptySelection)
   const [pendingDeleteFile, setPendingDeleteFile] = useState<ModelFile | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -32,7 +34,7 @@ export function LibraryView({
   const debouncedSearch = useDebouncedValue(search, 250)
 
   const { folders, reload: reloadFolders } = useFolders()
-  const { tags } = useTags()
+  const { tags, reload: reloadTags } = useTags()
   const { files, loading, error, reload: reloadFiles } = useFiles(selectedFolderId, selectedTagIds, debouncedSearch)
 
   const activeTags = selectedTagIds
@@ -121,6 +123,8 @@ export function LibraryView({
         tags={tags}
         selectedTagIds={selectedTagIds}
         onToggleTag={toggleTag}
+        reloadTags={reloadTags}
+        onTagDeleted={handleTagDeleted}
       />
       <main className={styles.center}>
         <LibraryToolbar
