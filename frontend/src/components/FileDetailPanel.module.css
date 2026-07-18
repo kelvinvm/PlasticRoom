@@ -47,9 +47,57 @@
 }
 
 .description {
-  margin: 0 0 14px;
+  width: 100%;
+  min-height: 70px;
+  resize: vertical;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-chip);
+  padding: 8px;
+  color: var(--text-primary);
+  font-family: var(--font-ui, inherit);
   font-size: 12px;
-  color: var(--text-secondary);
+}
+
+.field {
+  margin-bottom: 14px;
+}
+
+.fieldLabel {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 6px;
+}
+
+.fieldInput {
+  width: 100%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-chip);
+  padding: 6px 8px;
+  color: var(--text-primary);
+  font-family: var(--font-ui, inherit);
+  font-size: 12px;
+}
+
+.savingHint {
+  display: inline-block;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+.errorHint {
+  display: inline-block;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--error);
 }
 
 .meta {
