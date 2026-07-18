@@ -46,6 +46,8 @@ const TAG_COLORS: Record<string, string> = {
   red: '#e0654a',
 }
 
+export const TAG_COLOR_KEYS = ['brass', 'orange', 'green', 'red'] as const
+
 export function tagColor(colorKey: string | null): string {
   if (colorKey && TAG_COLORS[colorKey]) {
     return TAG_COLORS[colorKey]
