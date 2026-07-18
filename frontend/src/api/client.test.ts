@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { batchAssign, createFolder, createTag, getFiles, getFolders, plateThumbnailUrl, setFileFolders, uploadFile, uploadThumbnail } from './client'
+import { batchAssign, createFolder, createTag, deleteTag, getFiles, getFolders, plateThumbnailUrl, setFileFolders, updateTag, uploadFile, uploadThumbnail } from './client'
 
 describe('api client', () => {
   beforeEach(() => {
@@ -152,6 +152,44 @@ describe('batch assign', () => {
     expect(init.headers['Content-Type']).toBe('application/json')
     expect(JSON.parse(init.body)).toEqual({ fileIds: [1, 2], addFolderIds: [7], addTagIds: [4] })
     expect(updated).toHaveLength(2)
+  })
+})
+
+describe('tag mutations', () => {
+  beforeEach(() => vi.stubGlobal('fetch', vi.fn()))
+  afterEach(() => vi.unstubAllGlobals())
+
+  const okJson = (value: unknown) =>
+    ({ ok: true, json: () => Promise.resolve(value) }) as Response
+
+  it('updateTag PUTs name + colorKey as JSON', async () => {
+    const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>
+    fetchMock.mockResolvedValue(okJson({ id: 5, name: 'Filament', colorKey: 'red' }))
+
+    const tag = await updateTag(5, 'Filament', 'red')
+
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/tags/5')
+    expect(init.method).toBe('PUT')
+    expect(init.headers['Content-Type']).toBe('application/json')
+    expect(JSON.parse(init.body)).toEqual({ name: 'Filament', colorKey: 'red' })
+    expect(tag.name).toBe('Filament')
+  })
+
+  it('deleteTag DELETEs the tag route', async () => {
+    const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>
+    fetchMock.mockResolvedValue({ ok: true } as Response)
+
+    await deleteTag(5)
+
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/tags/5')
+    expect(init.method).toBe('DELETE')
+  })
+
+  it('deleteTag throws when the response is not ok', async () => {
+    ;(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: false, status: 404 } as Response)
+    await expect(deleteTag(999)).rejects.toThrow()
   })
 })
 

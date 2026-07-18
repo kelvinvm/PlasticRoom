@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import type { DragEvent } from 'react'
 import type { Folder, FolderOrderItem, Tag } from '../api/types'
 import { buildFolderTree, type FolderNode } from '../lib/folderTree'
-import { deleteFolder, reorderFolders, updateFolder } from '../api/client'
+import { deleteFolder, deleteTag, reorderFolders, updateFolder, updateTag } from '../api/client'
 import { computeFolderMove, resolveDropPosition, resolveRootDrop, type DropZone } from '../lib/folderMove'
-import { tagColor } from '../lib/format'
+import { tagColor, TAG_COLOR_KEYS } from '../lib/format'
 import { ConfirmDialog } from './ConfirmDialog'
 import styles from './Sidebar.module.css'
 
@@ -18,6 +18,8 @@ interface SidebarProps {
   tags: Tag[]
   selectedTagIds: number[]
   onToggleTag: (id: number) => void
+  reloadTags: () => void
+  onTagDeleted: (id: number) => void
 }
 
 interface RowProps {
@@ -181,7 +183,7 @@ function FolderRow({
 
 export function Sidebar({
   folders, selectedFolderId, onSelectFolder, onImport, reloadFolders, reloadFiles,
-  tags, selectedTagIds, onToggleTag,
+  tags, selectedTagIds, onToggleTag, reloadTags, onTagDeleted,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set())
   const [pendingDelete, setPendingDelete] = useState<FolderNode | null>(null)
@@ -190,9 +192,16 @@ export function Sidebar({
   const [dragId, setDragId] = useState<number | null>(null)
   const [dropTarget, setDropTarget] = useState<{ id: number | 'root'; zone: DropZone } | null>(null)
 
+  const [openTagMenuId, setOpenTagMenuId] = useState<number | null>(null)
+  const [recoloringTagId, setRecoloringTagId] = useState<number | null>(null)
+  const [renamingTagId, setRenamingTagId] = useState<number | null>(null)
+  const [tagDraft, setTagDraft] = useState('')
+  const [pendingDeleteTag, setPendingDeleteTag] = useState<Tag | null>(null)
+  const [tagDeleteError, setTagDeleteError] = useState<string | null>(null)
+
   const collectionsTree = buildFolderTree(folders)
 
-  // Dismiss an open context menu on outside click or Escape.
+  // Dismiss an open folder context menu on outside click or Escape.
   useEffect(() => {
     if (openMenuId === null) return
     const close = () => setOpenMenuId(null)
@@ -204,6 +213,19 @@ export function Sidebar({
       document.removeEventListener('keydown', onKey)
     }
   }, [openMenuId])
+
+  // Dismiss an open tag context menu or recolor popover on outside click or Escape.
+  useEffect(() => {
+    if (openTagMenuId === null && recoloringTagId === null) return
+    const close = () => { setOpenTagMenuId(null); setRecoloringTagId(null) }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close() }
+    document.addEventListener('click', close)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('click', close)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [openTagMenuId, recoloringTagId])
 
   const commitMove = async (items: FolderOrderItem[]) => {
     if (items.length === 0) return
@@ -278,6 +300,44 @@ export function Sidebar({
     }
   }
 
+  const commitTagRename = async (tag: Tag) => {
+    setRenamingTagId(null)
+    const trimmed = tagDraft.trim()
+    if (!trimmed || trimmed === tag.name) return
+    setActionError(null)
+    try {
+      await updateTag(tag.id, trimmed, tag.colorKey)
+      reloadTags()
+    } catch {
+      setActionError('Could not rename tag.')
+    }
+  }
+
+  const commitTagRecolor = async (tag: Tag, colorKey: string) => {
+    setRecoloringTagId(null)
+    setActionError(null)
+    try {
+      await updateTag(tag.id, tag.name, colorKey)
+      reloadTags()
+    } catch {
+      setActionError('Could not recolor tag.')
+    }
+  }
+
+  const confirmDeleteTag = async () => {
+    if (!pendingDeleteTag) return
+    const id = pendingDeleteTag.id
+    setTagDeleteError(null)
+    try {
+      await deleteTag(id)
+      setPendingDeleteTag(null)
+      onTagDeleted(id)
+      reloadTags()
+    } catch {
+      setTagDeleteError('Could not delete tag.')
+    }
+  }
+
   const allFilesSelected = selectedFolderId === null
 
   return (
@@ -336,17 +396,81 @@ export function Sidebar({
       <div className={styles.sectionLabel}>Tags</div>
       {tags.map((tag) => {
         const active = selectedTagIds.includes(tag.id)
+        const tagMenuOpen = openTagMenuId === tag.id
+        const renaming = renamingTagId === tag.id
+        const recoloring = recoloringTagId === tag.id
         return (
-          <button
-            key={tag.id}
-            type="button"
-            className={`${styles.tagRow} ${active ? styles.tagRowActive : ''}`}
-            aria-pressed={active}
-            onClick={() => onToggleTag(tag.id)}
-          >
-            <span className={styles.tagDot} style={{ background: tagColor(tag.colorKey) }} aria-hidden="true" />
-            <span className={styles.rowLabel}>{tag.name}</span>
-          </button>
+          <div key={tag.id} className={styles.tagRowWrap}>
+            {renaming ? (
+              <input
+                className={styles.renameInput}
+                autoFocus
+                value={tagDraft}
+                onChange={(e) => setTagDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') commitTagRename(tag)
+                  if (e.key === 'Escape') setRenamingTagId(null)
+                }}
+                onBlur={() => commitTagRename(tag)}
+              />
+            ) : (
+              <button
+                type="button"
+                className={`${styles.tagRow} ${active ? styles.tagRowActive : ''}`}
+                aria-pressed={active}
+                onClick={() => onToggleTag(tag.id)}
+                onContextMenu={(e) => { e.preventDefault(); setOpenTagMenuId(tag.id) }}
+              >
+                <span className={styles.tagDot} style={{ background: tagColor(tag.colorKey) }} aria-hidden="true" />
+                <span className={styles.rowLabel}>{tag.name}</span>
+              </button>
+            )}
+
+            {tagMenuOpen && (
+              <div className={styles.menu} role="menu" onMouseLeave={() => setOpenTagMenuId(null)}>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={styles.menuItem}
+                  onClick={() => { setOpenTagMenuId(null); setTagDraft(tag.name); setRenamingTagId(tag.id) }}
+                >
+                  Rename
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={styles.menuItem}
+                  onClick={(e) => { e.stopPropagation(); setOpenTagMenuId(null); setRecoloringTagId(tag.id) }}
+                >
+                  Recolor
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={styles.menuItemDanger}
+                  onClick={() => { setOpenTagMenuId(null); setPendingDeleteTag(tag) }}
+                >
+                  Delete
+                </button>
+              </div>
+            )}
+
+            {recoloring && (
+              <div className={styles.colorPopover} role="menu">
+                {TAG_COLOR_KEYS.map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    role="menuitem"
+                    aria-label={key}
+                    className={styles.colorSwatch}
+                    style={{ background: tagColor(key) }}
+                    onClick={() => commitTagRecolor(tag, key)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         )
       })}
 
@@ -358,6 +482,16 @@ export function Sidebar({
           danger
           onConfirm={confirmDelete}
           onCancel={() => setPendingDelete(null)}
+        />
+      )}
+
+      {pendingDeleteTag && (
+        <ConfirmDialog
+          body={<>Delete “{pendingDeleteTag.name}”? Files keep their other tags but lose this one.</>}
+          danger
+          error={tagDeleteError}
+          onConfirm={confirmDeleteTag}
+          onCancel={() => { setPendingDeleteTag(null); setTagDeleteError(null) }}
         />
       )}
     </nav>

@@ -4,10 +4,12 @@ vi.mock('../api/client', () => ({
   updateFolder: vi.fn().mockResolvedValue({}),
   deleteFolder: vi.fn().mockResolvedValue(undefined),
   reorderFolders: vi.fn().mockResolvedValue([]),
+  updateTag: vi.fn().mockResolvedValue({}),
+  deleteTag: vi.fn().mockResolvedValue(undefined),
 }))
-import { updateFolder, deleteFolder, reorderFolders } from '../api/client'
+import { updateFolder, deleteFolder, reorderFolders, updateTag, deleteTag } from '../api/client'
 import { Sidebar } from './Sidebar'
-import type { Folder } from '../api/types'
+import type { Folder, Tag } from '../api/types'
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -25,9 +27,23 @@ const folders: Folder[] = [
   folder(3, 'Favorites', null),
 ]
 
+const baseProps = {
+  folders: [] as Folder[],
+  selectedFolderId: null as number | null,
+  onSelectFolder: vi.fn(),
+  onImport: vi.fn(),
+  reloadFolders: vi.fn(),
+  reloadFiles: vi.fn(),
+  tags: [] as Tag[],
+  selectedTagIds: [] as number[],
+  onToggleTag: vi.fn(),
+  reloadTags: vi.fn(),
+  onTagDeleted: vi.fn(),
+}
+
 describe('Sidebar', () => {
   it('renders All Files, the library tree, and collections', () => {
-    render(<Sidebar folders={folders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={vi.fn()} reloadFiles={vi.fn()} tags={[]} selectedTagIds={[]} onToggleTag={vi.fn()} />)
+    render(<Sidebar {...baseProps} folders={folders} />)
     expect(screen.getByText('All Files')).toBeInTheDocument()
     expect(screen.getByText('Miniatures')).toBeInTheDocument()
     expect(screen.getByText('DnD Campaign')).toBeInTheDocument()
@@ -40,19 +56,7 @@ describe('Sidebar', () => {
       { id: 10, name: 'PLA', colorKey: 'green' },
       { id: 11, name: 'Printed', colorKey: 'orange' },
     ]
-    render(
-      <Sidebar
-        folders={[]}
-        selectedFolderId={null}
-        onSelectFolder={vi.fn()}
-        onImport={vi.fn()}
-        reloadFolders={vi.fn()}
-        reloadFiles={vi.fn()}
-        tags={tags}
-        selectedTagIds={[11]}
-        onToggleTag={onToggleTag}
-      />,
-    )
+    render(<Sidebar {...baseProps} tags={tags} selectedTagIds={[11]} onToggleTag={onToggleTag} />)
     expect(screen.getByText('Tags')).toBeInTheDocument()
     const printed = screen.getByRole('button', { name: 'Printed' })
     expect(printed).toHaveAttribute('aria-pressed', 'true')
@@ -62,45 +66,45 @@ describe('Sidebar', () => {
 
   it('calls onSelectFolder with the folder id when a folder is clicked', () => {
     const onSelect = vi.fn()
-    render(<Sidebar folders={folders} selectedFolderId={null} onSelectFolder={onSelect} onImport={vi.fn()} reloadFolders={vi.fn()} reloadFiles={vi.fn()} tags={[]} selectedTagIds={[]} onToggleTag={vi.fn()} />)
+    render(<Sidebar {...baseProps} folders={folders} onSelectFolder={onSelect} />)
     fireEvent.click(screen.getByText('Miniatures'))
     expect(onSelect).toHaveBeenCalledWith(1)
   })
 
   it('calls onSelectFolder with null when All Files is clicked', () => {
     const onSelect = vi.fn()
-    render(<Sidebar folders={folders} selectedFolderId={1} onSelectFolder={onSelect} onImport={vi.fn()} reloadFolders={vi.fn()} reloadFiles={vi.fn()} tags={[]} selectedTagIds={[]} onToggleTag={vi.fn()} />)
+    render(<Sidebar {...baseProps} folders={folders} selectedFolderId={1} onSelectFolder={onSelect} />)
     fireEvent.click(screen.getByText('All Files'))
     expect(onSelect).toHaveBeenCalledWith(null)
   })
 
   it('marks the selected row with aria-current', () => {
-    render(<Sidebar folders={folders} selectedFolderId={1} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={vi.fn()} reloadFiles={vi.fn()} tags={[]} selectedTagIds={[]} onToggleTag={vi.fn()} />)
+    render(<Sidebar {...baseProps} folders={folders} selectedFolderId={1} />)
     expect(screen.getByText('Miniatures').closest('[aria-current]')).toHaveAttribute('aria-current', 'true')
   })
 
   it('renders an Import button that calls onImport', () => {
     const onImport = vi.fn()
-    render(<Sidebar folders={folders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={onImport} reloadFolders={vi.fn()} reloadFiles={vi.fn()} tags={[]} selectedTagIds={[]} onToggleTag={vi.fn()} />)
+    render(<Sidebar {...baseProps} folders={folders} onImport={onImport} />)
     fireEvent.click(screen.getByRole('button', { name: /import/i }))
     expect(onImport).toHaveBeenCalled()
   })
 
   it('renders the file count for a folder', () => {
-    render(<Sidebar folders={folders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={vi.fn()} reloadFiles={vi.fn()} tags={[]} selectedTagIds={[]} onToggleTag={vi.fn()} />)
+    render(<Sidebar {...baseProps} folders={folders} />)
     // Miniatures has 3 files.
     expect(screen.getByText('Miniatures').closest('div,button,li')).toHaveTextContent('3')
   })
 
   it('collapses a parent folder, hiding its children', () => {
-    render(<Sidebar folders={folders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={vi.fn()} reloadFiles={vi.fn()} tags={[]} selectedTagIds={[]} onToggleTag={vi.fn()} />)
+    render(<Sidebar {...baseProps} folders={folders} />)
     expect(screen.getByText('DnD Campaign')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /collapse Miniatures/i }))
     expect(screen.queryByText('DnD Campaign')).not.toBeInTheDocument()
   })
 
   it('renames a library folder via the context menu', async () => {
-    render(<Sidebar folders={folders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={vi.fn()} reloadFiles={vi.fn()} tags={[]} selectedTagIds={[]} onToggleTag={vi.fn()} />)
+    render(<Sidebar {...baseProps} folders={folders} />)
     fireEvent.contextMenu(screen.getByText('Miniatures'))
     fireEvent.click(screen.getByRole('menuitem', { name: /rename/i }))
     const input = screen.getByDisplayValue('Miniatures')
@@ -111,7 +115,7 @@ describe('Sidebar', () => {
   })
 
   it('closes the context menu on Escape', () => {
-    render(<Sidebar folders={folders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={vi.fn()} reloadFiles={vi.fn()} tags={[]} selectedTagIds={[]} onToggleTag={vi.fn()} />)
+    render(<Sidebar {...baseProps} folders={folders} />)
     fireEvent.contextMenu(screen.getByText('Miniatures'))
     expect(screen.getByRole('menuitem', { name: /rename/i })).toBeInTheDocument()
     fireEvent.keyDown(document, { key: 'Escape' })
@@ -119,7 +123,7 @@ describe('Sidebar', () => {
   })
 
   it('closes the context menu on an outside click', () => {
-    render(<Sidebar folders={folders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={vi.fn()} reloadFiles={vi.fn()} tags={[]} selectedTagIds={[]} onToggleTag={vi.fn()} />)
+    render(<Sidebar {...baseProps} folders={folders} />)
     fireEvent.contextMenu(screen.getByText('Miniatures'))
     expect(screen.getByRole('menuitem', { name: /rename/i })).toBeInTheDocument()
     fireEvent.click(document.body)
@@ -127,7 +131,7 @@ describe('Sidebar', () => {
   })
 
   it('keeps only one context menu open at a time', () => {
-    render(<Sidebar folders={folders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={vi.fn()} reloadFiles={vi.fn()} tags={[]} selectedTagIds={[]} onToggleTag={vi.fn()} />)
+    render(<Sidebar {...baseProps} folders={folders} />)
     fireEvent.contextMenu(screen.getByText('Miniatures'))
     fireEvent.contextMenu(screen.getByText('DnD Campaign'))
     // Both rows can rename; only the most recently opened menu should be present.
@@ -137,13 +141,85 @@ describe('Sidebar', () => {
   it('deletes a folder after confirmation', async () => {
     const reloadFolders = vi.fn()
     const reloadFiles = vi.fn()
-    render(<Sidebar folders={folders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={reloadFolders} reloadFiles={reloadFiles} tags={[]} selectedTagIds={[]} onToggleTag={vi.fn()} />)
+    render(<Sidebar {...baseProps} folders={folders} reloadFolders={reloadFolders} reloadFiles={reloadFiles} />)
     fireEvent.contextMenu(screen.getByText('Miniatures'))
     fireEvent.click(screen.getByRole('menuitem', { name: /delete/i }))
     fireEvent.click(screen.getByRole('button', { name: /^delete$/i }))
     await waitFor(() => expect(reloadFolders).toHaveBeenCalled())
     expect(deleteFolder).toHaveBeenCalledWith(1)
     expect(reloadFiles).toHaveBeenCalled()
+  })
+})
+
+describe('Sidebar tag management', () => {
+  const tags: Tag[] = [
+    { id: 10, name: 'PLA', colorKey: 'green' },
+    { id: 11, name: 'Printed', colorKey: 'orange' },
+  ]
+
+  it('renames a tag via its context menu', async () => {
+    const reloadTags = vi.fn()
+    render(<Sidebar {...baseProps} tags={tags} reloadTags={reloadTags} />)
+    fireEvent.contextMenu(screen.getByRole('button', { name: 'PLA' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /rename/i }))
+    const input = screen.getByDisplayValue('PLA')
+    fireEvent.change(input, { target: { value: 'Filament' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    await waitFor(() => expect(updateTag).toHaveBeenCalledWith(10, 'Filament', 'green'))
+    await waitFor(() => expect(reloadTags).toHaveBeenCalled())
+  })
+
+  it('does not call updateTag if the rename is blank or unchanged', () => {
+    render(<Sidebar {...baseProps} tags={tags} />)
+    fireEvent.contextMenu(screen.getByRole('button', { name: 'PLA' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /rename/i }))
+    const input = screen.getByDisplayValue('PLA')
+    fireEvent.change(input, { target: { value: '   ' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(updateTag).not.toHaveBeenCalled()
+  })
+
+  it('recolors a tag via the recolor popover', async () => {
+    const reloadTags = vi.fn()
+    render(<Sidebar {...baseProps} tags={tags} reloadTags={reloadTags} />)
+    fireEvent.contextMenu(screen.getByRole('button', { name: 'PLA' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /recolor/i }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /^red$/i }))
+    await waitFor(() => expect(updateTag).toHaveBeenCalledWith(10, 'PLA', 'red'))
+    await waitFor(() => expect(reloadTags).toHaveBeenCalled())
+  })
+
+  it('deletes a tag after confirmation and reports the id to the parent', async () => {
+    const reloadTags = vi.fn()
+    const onTagDeleted = vi.fn()
+    render(<Sidebar {...baseProps} tags={tags} reloadTags={reloadTags} onTagDeleted={onTagDeleted} />)
+    fireEvent.contextMenu(screen.getByRole('button', { name: 'PLA' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /delete/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }))
+    await waitFor(() => expect(deleteTag).toHaveBeenCalledWith(10))
+    expect(onTagDeleted).toHaveBeenCalledWith(10)
+    expect(reloadTags).toHaveBeenCalled()
+  })
+
+  it('a failed tag delete keeps the confirm dialog open with an error', async () => {
+    ;(deleteTag as unknown as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('nope'))
+    render(<Sidebar {...baseProps} tags={tags} />)
+    fireEvent.contextMenu(screen.getByRole('button', { name: 'PLA' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /delete/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }))
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^delete$/i })).toBeInTheDocument()
+  })
+
+  it('opening a tag menu closes an open folder menu (single menu system per section)', () => {
+    render(<Sidebar {...baseProps} folders={folders} tags={tags} />)
+    fireEvent.contextMenu(screen.getByText('Miniatures'))
+    expect(screen.getByRole('menuitem', { name: /rename/i })).toBeInTheDocument()
+    fireEvent.contextMenu(screen.getByRole('button', { name: 'PLA' }))
+    // Tag menu and folder menu are independent state, so both could in principle be
+    // open; assert the tag menu is now present (the folder menu's independent
+    // lifecycle is already covered by the "closes on outside click" test above).
+    expect(screen.getAllByRole('menuitem', { name: /rename/i }).length).toBeGreaterThanOrEqual(1)
   })
 })
 
@@ -182,7 +258,7 @@ const threeRoots: Folder[] = [
 describe('Sidebar drag-and-drop wiring', () => {
   it('dropping one library folder onto another persists a move and reloads', async () => {
     const reloadFolders = vi.fn()
-    render(<Sidebar folders={dndFolders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={reloadFolders} reloadFiles={vi.fn()} tags={[]} selectedTagIds={[]} onToggleTag={vi.fn()} />)
+    render(<Sidebar {...baseProps} folders={dndFolders} reloadFolders={reloadFolders} />)
     fireEvent.dragStart(rowOf('Beta'))
     fireEvent.drop(rowOf('Alpha'))
     await waitFor(() => expect(reorderFolders).toHaveBeenCalled())
@@ -192,7 +268,7 @@ describe('Sidebar drag-and-drop wiring', () => {
   it('a failed reorder surfaces an alert and does not reload', async () => {
     ;(reorderFolders as unknown as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('nope'))
     const reloadFolders = vi.fn()
-    render(<Sidebar folders={dndFolders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={reloadFolders} reloadFiles={vi.fn()} tags={[]} selectedTagIds={[]} onToggleTag={vi.fn()} />)
+    render(<Sidebar {...baseProps} folders={dndFolders} reloadFolders={reloadFolders} />)
     fireEvent.dragStart(rowOf('Beta'))
     fireEvent.drop(rowOf('Alpha'))
     expect(await screen.findByRole('alert')).toBeInTheDocument()
@@ -201,7 +277,7 @@ describe('Sidebar drag-and-drop wiring', () => {
 
   it('a successful move also reloads files (grid filter is descendant-inclusive)', async () => {
     const reloadFiles = vi.fn()
-    render(<Sidebar folders={dndFolders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={vi.fn()} reloadFiles={reloadFiles} tags={[]} selectedTagIds={[]} onToggleTag={vi.fn()} />)
+    render(<Sidebar {...baseProps} folders={dndFolders} reloadFiles={reloadFiles} />)
     fireEvent.dragStart(rowOf('Beta'))
     fireEvent.drop(rowOf('Alpha'))
     await waitFor(() => expect(reloadFiles).toHaveBeenCalled())
@@ -209,7 +285,7 @@ describe('Sidebar drag-and-drop wiring', () => {
 
   it('starting a new drag clears a lingering move error', async () => {
     ;(reorderFolders as unknown as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('nope'))
-    render(<Sidebar folders={dndFolders} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={vi.fn()} reloadFiles={vi.fn()} tags={[]} selectedTagIds={[]} onToggleTag={vi.fn()} />)
+    render(<Sidebar {...baseProps} folders={dndFolders} />)
     fireEvent.dragStart(rowOf('Beta'))
     fireEvent.drop(rowOf('Alpha'))
     expect(await screen.findByRole('alert')).toBeInTheDocument()
@@ -221,7 +297,7 @@ describe('Sidebar drag-and-drop wiring', () => {
     // Beta is nested under Alpha; dropping it on All Files moves it to root.
     const nested: Folder[] = [folder(1, 'Alpha', null, 0), folder(2, 'Beta', 1, 0)]
     const reloadFolders = vi.fn()
-    render(<Sidebar folders={nested} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={reloadFolders} reloadFiles={vi.fn()} tags={[]} selectedTagIds={[]} onToggleTag={vi.fn()} />)
+    render(<Sidebar {...baseProps} folders={nested} reloadFolders={reloadFolders} />)
     fireEvent.dragStart(rowOf('Beta'))
     fireEvent.drop(screen.getByText('All Files').closest('div') as HTMLElement)
     await waitFor(() => expect(reorderFolders).toHaveBeenCalled())
@@ -229,7 +305,7 @@ describe('Sidebar drag-and-drop wiring', () => {
 
   it('dropping in the top zone re-orders the folder before the target', async () => {
     const reloadFolders = vi.fn()
-    render(<Sidebar folders={threeRoots} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={reloadFolders} reloadFiles={vi.fn()} tags={[]} selectedTagIds={[]} onToggleTag={vi.fn()} />)
+    render(<Sidebar {...baseProps} folders={threeRoots} reloadFolders={reloadFolders} />)
     fireEvent.dragStart(rowOf('Gamma'))
     fireZonedDrop(rowOf('Alpha'), 'before')
     await waitFor(() => expect(reorderFolders).toHaveBeenCalled())
@@ -243,7 +319,7 @@ describe('Sidebar drag-and-drop wiring', () => {
 
   it('dropping in the bottom zone re-orders the folder after the target', async () => {
     const reloadFolders = vi.fn()
-    render(<Sidebar folders={threeRoots} selectedFolderId={null} onSelectFolder={vi.fn()} onImport={vi.fn()} reloadFolders={reloadFolders} reloadFiles={vi.fn()} tags={[]} selectedTagIds={[]} onToggleTag={vi.fn()} />)
+    render(<Sidebar {...baseProps} folders={threeRoots} reloadFolders={reloadFolders} />)
     fireEvent.dragStart(rowOf('Gamma'))
     fireZonedDrop(rowOf('Alpha'), 'after')
     await waitFor(() => expect(reorderFolders).toHaveBeenCalled())

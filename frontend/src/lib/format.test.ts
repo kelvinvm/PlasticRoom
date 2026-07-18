@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatBytes, formatDimensions, formatPrintTime, tagColor } from './format'
+import { formatBytes, formatDimensions, formatPrintTime, tagColor, TAG_COLOR_KEYS } from './format'
 
 describe('formatters', () => {
   it('formats bytes into human units', () => {
@@ -24,5 +24,9 @@ describe('formatters', () => {
     expect(tagColor('green')).toBe('#3ddc97')
     expect(tagColor(null)).toBe('#dbb55a')
     expect(tagColor('unknown')).toBe('#dbb55a')
+  })
+
+  it('exposes the 4 valid tag color keys in a stable order', () => {
+    expect(TAG_COLOR_KEYS).toEqual(['brass', 'orange', 'green', 'red'])
   })
 })

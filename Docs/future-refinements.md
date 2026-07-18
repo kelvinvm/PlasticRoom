@@ -153,3 +153,19 @@ menu-dismissal changes. The remaining test-infra item stays open.
   `clientY` on the event by hand to hit the top/bottom zone thresholds. The two assertions
   keep Gamma at root with distinct sort orders (0 vs 1), proving the branch actually fired
   rather than falling back to `onto`.
+
+## 8. Customizable tag colors (Settings)
+
+Let users define their own tag color palette (e.g. via a Settings page, see item #1)
+rather than picking from the fixed brass/orange/green/red set in
+`frontend/src/lib/format.ts`. Raised while brainstorming tag management (rename/recolor/
+delete, implemented 2026-07-18): useful for accessibility (e.g. choosing colors that are
+distinguishable for color-blind users) and personal preference. Decide during
+brainstorming whether this is a custom hex picker per tag or a small set of
+user-editable palette slots.
+
+## 9. Tag merging
+
+Combine two tags into one — reassigns every `FileTag` from a losing tag to a winning
+tag, then deletes the loser. Explicitly deferred out of tag management (rename/recolor/
+delete, implemented 2026-07-18) as a separate, larger concept.
