@@ -24,4 +24,7 @@ public class Tag : XPObject
 
     [Association("Tag-FileTags")]
     public XPCollection<FileTag> FileTags => GetCollection<FileTag>(nameof(FileTags));
+
+    [Association("Tag-ModelTags")]
+    public XPCollection<ModelTag> ModelTags => GetCollection<ModelTag>(nameof(ModelTags));
 }
