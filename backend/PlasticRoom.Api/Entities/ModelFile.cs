@@ -129,4 +129,12 @@ public class ModelFile : XPObject
 
     [Association("File-Plates")]
     public XPCollection<Plate> Plates => GetCollection<Plate>(nameof(Plates));
+
+    private Model? model;
+    [Association("Model-ModelFiles")]
+    public Model? Model
+    {
+        get => model;
+        set => SetPropertyValue(nameof(Model), ref model, value);
+    }
 }
