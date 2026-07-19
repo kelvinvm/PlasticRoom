@@ -92,8 +92,53 @@ public static class QueryCommands
 
     public static int Show(string[] args, XpoSessionFactory sessionFactory, IConsoleIO io)
     {
-        io.WriteLine("show: not implemented yet");
-        return 1;
+        if (args.Length == 0)
+        {
+            io.WriteLine("Usage: plasticroom show <model-name>");
+            return 1;
+        }
+
+        using var session = sessionFactory.CreateSession();
+        var model = new XPCollection<Model>(session).Cast<Model>()
+            .FirstOrDefault(m => m.Name.Equals(args[0], StringComparison.OrdinalIgnoreCase));
+
+        if (model is null)
+        {
+            io.WriteLine($"Model '{args[0]}' not found.");
+            return 1;
+        }
+
+        io.WriteLine($"{model.Name} — {model.Designer.Name}");
+        var tags = string.Join(", ", model.ModelTags.Select(mt => mt.Tag.Name));
+        io.WriteLine(tags.Length > 0 ? $"Tags: {tags}" : "Tags: (none — run 'tag' to add some)");
+        io.WriteLine($"Folder: {model.DestinationPath}");
+
+        io.WriteLine("Files:");
+        var knownNames = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var file in model.Files)
+        {
+            io.WriteLine($"  {file.Name} ({file.Type})");
+            knownNames.Add(file.Name);
+        }
+
+        if (System.IO.Directory.Exists(model.DestinationPath))
+        {
+            var extras = System.IO.Directory.EnumerateFiles(model.DestinationPath)
+                .Select(System.IO.Path.GetFileName)
+                .Where(name => name is not null && !knownNames.Contains(name))
+                .ToList();
+
+            if (extras.Count > 0)
+            {
+                io.WriteLine("Documents:");
+                foreach (var name in extras)
+                {
+                    io.WriteLine($"  {name}");
+                }
+            }
+        }
+
+        return 0;
     }
 
     private static string? GetFlagValue(string[] args, string flag)
