@@ -119,11 +119,18 @@ slicer software. Useful even though import already colocates files, and sets
 up the pattern needed later for modular systems where a "thing" really is
 assembled from files across multiple locations.
 
+## Existing data
+
+No migration. There's nothing of value in the current DB (folders/collections,
+per-file tags, imported files) — it gets discarded, and the schema is free to
+change shape (Designer/Model tables, tags moving from per-file to per-Model)
+without a migration path.
+
 ## Out of scope / open questions for later
 
 - How designer/model name guessing behaves when a zip contains multiple
   unrelated models (not addressed now; assume one model per zip for this MVP).
-- Migration of existing DB data (folders/collections, per-file tags) into the
-  new Designer/Model shape — not addressed by this spec.
+- Loose files/folders not packaged as a zip (`import` is zip-only for this
+  pass; bulk-importing existing unzipped STL collections is a separate problem).
 - Modular/pick-and-mix systems and how `export` generalizes to assembling a set
   of files from multiple Models.
