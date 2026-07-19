@@ -938,7 +938,8 @@ public class ImportCommandTests : IDisposable
 
         var model = designer.Models.Single();
         Assert.Equal("Bramble", model.Name);
-        Assert.Equal(2, model.Files.Count);
+        // Only .3mf/.stl become ModelFile rows; the PDF stays on disk as a document (see show command).
+        Assert.Equal(1, model.Files.Count);
         Assert.Empty(model.ModelTags);
 
         var destinationDir = Path.Combine(_libraryPaths.RootDirectory, "LeHa Designs", "Bramble");
